@@ -1,21 +1,25 @@
 'use client'
 
 import { create } from 'zustand'
-import type { BoardData, Card, CardStatus, NewCardInput } from '@/lib/types'
+import { ALL_STATUSES, type BoardData, type Card, type CardStatus, type NewCardInput } from '@/lib/types'
 
 interface BoardStore {
   project: { path: string; name: string } | null
   board: BoardData | null
   selectedCard: Card | null
+  selectedCardIds: Set<string>
   isLoading: boolean
   error: string | null
 
   openProject(projectPath: string): Promise<void>
   refreshBoard(): Promise<void>
   selectCard(card: Card | null): void
+  clearSelectedCards(): void
+  toggleCardSelection(id: string): void
   createCard(input: NewCardInput): Promise<Card>
   updateCard(id: string, data: Partial<NewCardInput>): Promise<void>
   moveCard(id: string, newStatus: CardStatus): Promise<void>
+  moveCards(ids: string[], newStatus: CardStatus): Promise<void>
   deleteCard(id: string): Promise<void>
 }
 
@@ -23,6 +27,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   project: null,
   board: null,
   selectedCard: null,
+  selectedCardIds: new Set(),
   isLoading: false,
   error: null,
 
@@ -30,7 +35,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const board = await window.electronAPI.openProject(projectPath)
-      set({ board, project: { path: projectPath, name: board.projectName }, isLoading: false })
+      set({ board, project: { path: projectPath, name: board.projectName }, selectedCardIds: new Set(), isLoading: false })
     } catch (e) {
       set({ error: String(e), isLoading: false })
     }
@@ -46,6 +51,18 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   },
 
   selectCard: (card) => set({ selectedCard: card }),
+
+  clearSelectedCards: () => set({ selectedCardIds: new Set() }),
+
+  toggleCardSelection: (id) => set(state => {
+    const selectedCardIds = new Set(state.selectedCardIds)
+    if (selectedCardIds.has(id)) {
+      selectedCardIds.delete(id)
+    } else {
+      selectedCardIds.add(id)
+    }
+    return { selectedCardIds }
+  }),
 
   createCard: async (input) => {
     const { project } = get()
@@ -119,6 +136,29 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     })
   },
 
+  moveCards: async (ids, newStatus) => {
+    const { project, board } = get()
+    if (!project || !board) return
+
+    const cardsToMove = cardsForIds(board, ids).filter(card => card.status !== newStatus)
+    if (cardsToMove.length === 0) return
+
+    for (const card of cardsToMove) {
+      await window.electronAPI.moveCard(card.id, newStatus, project.path)
+    }
+
+    const movedAt = new Date().toISOString()
+    set(state => {
+      if (!state.board) return state
+
+      const movedCards = movedCardCopies(cardsToMove, newStatus, movedAt)
+      return {
+        board: { ...state.board, columns: columnsAfterMove(state.board, cardsToMove, movedCards, newStatus) },
+        selectedCard: selectedCardAfterMove(state.selectedCard, movedCards),
+      }
+    })
+  },
+
   deleteCard: async (id) => {
     const { project, board } = get()
     if (!project || !board) return
@@ -150,4 +190,36 @@ function findCard(board: BoardData, id: string): Card | undefined {
     if (found) return found
   }
   return undefined
+}
+
+function cardsForIds(board: BoardData, ids: string[]): Card[] {
+  return Array.from(new Set(ids))
+    .map(id => findCard(board, id))
+    .filter((card): card is Card => Boolean(card))
+}
+
+function movedCardCopies(cards: Card[], newStatus: CardStatus, movedAt: string): Card[] {
+  return cards.map(card => ({ ...card, status: newStatus, updatedAt: movedAt }))
+}
+
+function columnsAfterMove(
+  board: BoardData,
+  cardsToMove: Card[],
+  movedCards: Card[],
+  newStatus: CardStatus,
+) {
+  const movingIds = new Set(cardsToMove.map(card => card.id))
+  const columns = { ...board.columns }
+
+  for (const status of ALL_STATUSES) {
+    columns[status] = columns[status].filter(card => !movingIds.has(card.id))
+  }
+
+  columns[newStatus] = [...movedCards, ...columns[newStatus]]
+  return columns
+}
+
+function selectedCardAfterMove(selectedCard: Card | null, movedCards: Card[]): Card | null {
+  if (!selectedCard) return null
+  return movedCards.find(card => card.id === selectedCard.id) ?? selectedCard
 }

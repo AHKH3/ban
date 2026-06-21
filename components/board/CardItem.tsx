@@ -10,6 +10,7 @@ import { ALL_STATUSES } from '@/lib/types'
 import { useT } from '@/lib/i18n'
 import { tagColor } from '@/lib/tag-color'
 import { formatRelative } from '@/lib/utils'
+import { getDraggedCardIds } from '@/lib/card-selection'
 
 interface Props {
   card: Card
@@ -28,10 +29,11 @@ const PRIORITY_KEY: Record<string, string> = {
 }
 
 export function CardItem({ card, onClick }: Props) {
-  const { moveCard } = useBoardStore()
+  const { moveCard, selectedCardIds, toggleCardSelection } = useBoardStore()
   const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const isSelected = selectedCardIds.has(card.id)
 
   // Native HTML5 drag — attached via ref so framer-motion's own onDragStart
   // gesture prop doesn't shadow it.
@@ -40,7 +42,9 @@ export function CardItem({ card, onClick }: Props) {
     if (!el) return
 
     const onDragStart = (e: DragEvent) => {
+      const draggedIds = getDraggedCardIds(card.id, selectedCardIds)
       e.dataTransfer?.setData('text/ban-card-id', card.id)
+      e.dataTransfer?.setData('text/ban-card-ids', JSON.stringify(draggedIds))
       if (e.dataTransfer) {
         e.dataTransfer.effectAllowed = 'move'
       }
@@ -89,7 +93,7 @@ export function CardItem({ card, onClick }: Props) {
       el.removeEventListener('dragstart', onDragStart)
       el.removeEventListener('dragend', onDragEnd)
     }
-  }, [card.id])
+  }, [card.id, selectedCardIds])
 
 
   // Click the status icon to advance to the next pipeline status.
@@ -110,11 +114,20 @@ export function CardItem({ card, onClick }: Props) {
       transition={{ duration: 0.12 }}
       ref={ref}
       draggable
-      onClick={() => onClick(card)}
+      onClick={e => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault()
+          toggleCardSelection(card.id)
+          return
+        }
+        onClick(card)
+      }}
       className={`group/card relative bg-surface-2 border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200
+        ${isSelected ? 'ring-2 ring-accent/70 border-accent bg-accent-soft/15' : ''}
         ${isDragging 
           ? 'opacity-30 border-dashed border-border-strong bg-surface-1/50 scale-[0.98]' 
           : 'border-border-subtle hover:border-border-strong hover:bg-surface-3 hover:-translate-y-0.5 hover:shadow-md active:scale-98'}`}
+      aria-selected={isSelected}
     >
       {/* Priority dot */}
       {card.priority !== 'normal' && card.priority !== 'low' && (

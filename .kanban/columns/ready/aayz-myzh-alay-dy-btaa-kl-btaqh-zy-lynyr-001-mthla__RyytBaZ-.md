@@ -1,11 +1,11 @@
 ---
 id: RyytBaZ-
-status: shape
+status: ready
 type: task
 priority: normal
 tags: []
 createdAt: '2026-06-21T15:30:03.282Z'
-updatedAt: '2026-06-21T15:30:03.282Z'
+updatedAt: '2026-06-21T15:38:43.917Z'
 ---
 # عايز ميزة الاي دي بتاع كل بطاقة زي لينير 001 مثلا وكده بقى
 
@@ -18,4 +18,3 @@ updatedAt: '2026-06-21T15:30:03.282Z'
 
 
 ## Outcome
-

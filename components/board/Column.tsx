@@ -21,7 +21,7 @@ const STATUS_KEY: Record<CardStatus, string> = {
 }
 
 export function Column({ status, cards, onNewCard }: Props) {
-  const { selectCard, moveCard } = useBoardStore()
+  const { selectCard, moveCard, moveCards } = useBoardStore()
   const t = useT()
   const [isOver, setIsOver] = useState(false)
   const label = t(STATUS_KEY[status])
@@ -29,6 +29,11 @@ export function Column({ status, cards, onNewCard }: Props) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsOver(false)
+    const ids = parseDraggedCardIds(e.dataTransfer)
+    if (ids.length > 0) {
+      moveCards(ids, status)
+      return
+    }
     const id = e.dataTransfer.getData('text/ban-card-id')
     if (id) moveCard(id, status)
   }
@@ -41,7 +46,7 @@ export function Column({ status, cards, onNewCard }: Props) {
           : ''
       }`}
       onDragOver={e => {
-        if (!e.dataTransfer.types.includes('text/ban-card-id')) return
+        if (!hasDraggedCards(e.dataTransfer)) return
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
         if (!isOver) setIsOver(true)
@@ -86,4 +91,20 @@ export function Column({ status, cards, onNewCard }: Props) {
       </div>
     </div>
   )
+}
+
+function hasDraggedCards(dataTransfer: DataTransfer) {
+  return dataTransfer.types.includes('text/ban-card-ids') || dataTransfer.types.includes('text/ban-card-id')
+}
+
+function parseDraggedCardIds(dataTransfer: DataTransfer) {
+  const raw = dataTransfer.getData('text/ban-card-ids')
+  if (!raw) return []
+
+  try {
+    const ids = JSON.parse(raw)
+    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    return []
+  }
 }
