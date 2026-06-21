@@ -7,6 +7,7 @@ import { StatusIcon } from '@/components/card/StatusIcon'
 import { useBoardStore } from '@/lib/store/board'
 import { useT } from '@/lib/i18n'
 import { tagColor } from '@/lib/tag-color'
+import { formatRelative } from '@/lib/utils'
 import { ALL_STATUSES } from '@/lib/types'
 import type {
   ActivityCardSnapshot,
@@ -96,10 +97,6 @@ export function JourneyView() {
     return () => window.clearTimeout(timer)
   }, [isPlaying, playhead, rangeEvents.length, speed])
 
-  const affectedCardIds = useMemo(() => {
-    return new Set(rangeEvents.map(event => event.cardId).filter(Boolean) as string[])
-  }, [rangeEvents])
-
   const baselineState = useMemo(() => {
     return mode === 'range-state' ? applyEvents(new Map(), baselineEvents) : new Map<string, ActivityCardSnapshot>()
   }, [baselineEvents, mode])
@@ -130,10 +127,7 @@ export function JourneyView() {
     return columns
   }, [visibleCards])
 
-  const baselineCardIds = useMemo(() => new Set(Array.from(baselineState.keys())), [baselineState])
-
   const activeEvent = playhead > 0 ? rangeEvents[playhead - 1] : null
-  const activeCardId = activeEvent?.cardId
 
   if (!project) return null
 
@@ -158,19 +152,17 @@ export function JourneyView() {
         onCustomEndChange={setCustomEnd}
       />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <div className="flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-bg">
           {ALL_STATUSES.map(status => (
-            <JourneyColumn
-              key={status}
-              status={status}
-              label={t(STATUS_KEY[status])}
-              cards={grouped[status]}
-              activeCardId={activeCardId}
-              affectedCardIds={affectedCardIds}
-              baselineCardIds={baselineCardIds}
-              emptyLabel={t('board.empty')}
-            />
+            <div key={status} className="group h-full border-e border-border-subtle last:border-e-0 bg-surface-1">
+              <JourneyColumn
+                status={status}
+                label={t(STATUS_KEY[status])}
+                cards={grouped[status]}
+                emptyLabel={t('board.empty')}
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -221,14 +213,13 @@ function JourneyToolbar({
   const t = useT()
 
   return (
-    <header className="shrink-0 border-b border-border-subtle bg-surface-1 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-base font-semibold text-text-primary">{t('journey.title')}</h1>
-          <p className="mt-0.5 text-xs text-text-muted">{t('journey.subtitle')}</p>
+    <header className="shrink-0 border-b border-border-subtle bg-surface-1 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex h-8 items-center px-1">
+          <span className="text-sm font-medium text-text-primary">{t('journey.title')}</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <Segmented
             label={t('journey.range')}
             value={preset}
@@ -255,12 +246,12 @@ function JourneyToolbar({
           <button
             onClick={onTogglePlaying}
             disabled={!hasEvents}
-            className="rounded border border-border-subtle bg-accent px-3 py-1.5 font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+            className="h-8 rounded-md border border-border-subtle bg-accent px-3 text-xs font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isPlaying ? t('journey.pause') : t('journey.play')}
           </button>
 
-          <label className="flex items-center gap-1.5 rounded border border-border-subtle bg-surface-2 px-2 py-1.5 text-text-secondary">
+          <label className="flex h-8 items-center gap-1.5 rounded-md border border-border-subtle bg-surface-2 px-2 text-text-secondary">
             <span className="text-text-muted">{t('journey.speed')}</span>
             <select
               value={speed}
@@ -274,7 +265,7 @@ function JourneyToolbar({
       </div>
 
       {preset === 'custom' && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
           <DateField label={t('journey.from')} value={customStart} onChange={onCustomStartChange} />
           <DateField label={t('journey.to')} value={customEnd} onChange={onCustomEndChange} />
         </div>
@@ -291,7 +282,7 @@ function DateField({ label, value, onChange }: { label: string; value: string; o
         type="date"
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-text-secondary focus:outline-none focus:border-accent-border"
+        className="h-8 rounded-md border border-border-subtle bg-surface-2 px-2 text-text-secondary focus:outline-none focus:border-accent-border"
       />
     </label>
   )
@@ -313,8 +304,8 @@ function JourneyStrip({
   const t = useT()
 
   return (
-    <footer className="shrink-0 border-t border-border-subtle bg-surface-1 px-4 py-3">
-      <div className="mb-2 flex items-center justify-between gap-3 text-xs text-text-muted">
+    <footer className="shrink-0 border-t border-border-subtle bg-surface-1 px-3 py-2">
+      <div className="mb-2 flex items-center justify-between gap-3 text-[11px] text-text-muted">
         <span>{isLoading ? t('journey.loading') : `${events.length} ${t('journey.events')}`}</span>
         {activeEvent && (
           <span className="truncate text-text-secondary">
@@ -332,12 +323,12 @@ function JourneyStrip({
           onChange={event => onScrub(Number(event.target.value))}
           className="h-1 flex-1 accent-[var(--accent)]"
         />
-        <span className="w-16 text-end text-[11px] text-text-muted">
+        <span className="w-14 text-end text-[11px] text-text-muted">
           {playhead}/{events.length}
         </span>
       </div>
 
-      <div className="mt-3 flex h-7 items-center gap-1 overflow-x-auto">
+      <div className="mt-2 flex h-5 items-center gap-1 overflow-x-auto">
         {events.length === 0 && (
           <p className="text-xs text-text-muted">
             {t('journey.noEvents')} {t('journey.recordingStarts')}
@@ -347,10 +338,10 @@ function JourneyStrip({
           <button
             key={event.id}
             onClick={() => onScrub(index + 1)}
-            className={`h-3 shrink-0 rounded-full border transition-all ${
+            className={`h-2.5 shrink-0 rounded-full border transition-all ${
               index < playhead
-                ? 'w-8 border-accent bg-accent'
-                : 'w-3 border-border-strong bg-surface-3 hover:border-accent-border'
+                ? 'w-7 border-accent bg-accent'
+                : 'w-2.5 border-border-strong bg-surface-3 hover:border-accent-border'
             }`}
             title={eventSentence(event)}
           />
@@ -364,40 +355,29 @@ function JourneyColumn({
   status,
   label,
   cards,
-  activeCardId,
-  affectedCardIds,
-  baselineCardIds,
   emptyLabel,
 }: {
   status: CardStatus
   label: string
   cards: ActivityCardSnapshot[]
-  activeCardId?: string
-  affectedCardIds: Set<string>
-  baselineCardIds: Set<string>
   emptyLabel: string
 }) {
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col border-x border-transparent bg-surface-1">
+    <div className="flex flex-col w-72 shrink-0 h-full transition-all duration-200 border-x border-transparent">
       <div className="flex shrink-0 items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-2">
           <StatusIcon status={status} size={14} />
           <span className="text-sm font-medium text-text-primary">{label}</span>
-          <span className="min-w-[20px] rounded bg-surface-3 px-1.5 py-0.5 text-center text-xs text-text-muted">
+          <span className="text-xs text-text-muted bg-surface-3 rounded px-1.5 py-0.5 min-w-[20px] text-center">
             {cards.length}
           </span>
         </div>
       </div>
 
-      <div className="column-scroll flex-1 space-y-2 px-2 pb-3">
+      <div className="flex-1 column-scroll px-2 pb-3 space-y-2">
         <AnimatePresence initial={false}>
           {cards.map(card => (
-            <JourneyCard
-              key={card.id}
-              card={card}
-              active={card.id === activeCardId}
-              muted={baselineCardIds.has(card.id) && !affectedCardIds.has(card.id)}
-            />
+            <JourneyCard key={card.id} card={card} />
           ))}
         </AnimatePresence>
 
@@ -411,51 +391,75 @@ function JourneyColumn({
   )
 }
 
-function JourneyCard({ card, active, muted }: { card: ActivityCardSnapshot; active: boolean; muted: boolean }) {
+const PRIORITY_DOT: Record<string, string> = {
+  urgent: 'bg-danger',
+  high: 'bg-warning',
+  normal: 'bg-transparent',
+  low: 'bg-transparent',
+}
+
+const PRIORITY_KEY: Record<string, string> = {
+  urgent: 'priority.urgent',
+  high: 'priority.high',
+  normal: 'priority.normal',
+  low: 'priority.low',
+}
+
+function JourneyCard({ card }: { card: ActivityCardSnapshot }) {
+  const t = useT()
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8, scale: 0.98 }}
-      animate={{
-        opacity: muted ? 0.48 : 1,
-        y: 0,
-        scale: active ? 1.02 : 1,
-      }}
+      layoutId={`journey-card-${card.id}`}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.18 }}
-      className={`relative rounded-lg border bg-surface-2 p-3 transition-colors ${
-        active ? 'border-accent shadow-[0_0_0_1px_var(--accent-border),0_12px_36px_rgba(94,106,210,0.18)]' : 'border-border-subtle'
-      }`}
+      transition={{ duration: 0.12 }}
+      className="group/card relative bg-surface-2 border rounded-lg p-3 cursor-default transition-all duration-200 border-border-subtle"
     >
+      {card.priority !== 'normal' && card.priority !== 'low' && (
+        <span
+          className={`absolute top-3 end-3 w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[card.priority]}`}
+          title={t(PRIORITY_KEY[card.priority])}
+        />
+      )}
+
       <div className="flex items-start gap-2">
-        <div className="mt-0.5 shrink-0">
+        <div className="mt-0.5 shrink-0 rounded">
           <StatusIcon status={card.status} size={15} />
         </div>
         <div className="mt-0.5 shrink-0">
           <CardTypeIcon type={card.type} size={13} />
         </div>
-        <p className="line-clamp-2 min-w-0 flex-1 text-sm leading-snug text-text-primary">
+        <p className="text-sm text-text-primary leading-snug line-clamp-2 flex-1 min-w-0 pe-3">
           {card.title}
         </p>
       </div>
 
       {card.tags.length > 0 && (
-        <div className="ms-10 mt-2 flex flex-wrap gap-1">
-          {card.tags.slice(0, 3).map(tag => {
-            const color = tagColor(tag)
+        <div className="flex flex-wrap gap-1 mt-2 ms-10">
+          {card.tags.slice(0, 4).map(tag => {
+            const c = tagColor(tag)
             return (
               <span
                 key={tag}
-                className="rounded border px-1.5 py-0.5 text-[11px]"
-                style={{ color: color.text, background: color.bg, borderColor: color.border }}
+                className="text-[11px] rounded px-1.5 py-0.5 border transition-all duration-150 cursor-default"
+                style={{ color: c.text, background: c.bg, borderColor: c.border }}
               >
                 #{tag}
               </span>
             )
           })}
-          {card.tags.length > 3 && <span className="text-[11px] text-text-muted">+{card.tags.length - 3}</span>}
+          {card.tags.length > 4 && (
+            <span className="text-[11px] text-text-muted">+{card.tags.length - 4}</span>
+          )}
         </div>
       )}
+
+      <div className="mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover/card:opacity-100 transition-opacity">
+        {formatRelative(card.updatedAt)}
+      </div>
     </motion.div>
   )
 }
@@ -472,13 +476,13 @@ function Segmented({
   onChange: (value: string) => void
 }) {
   return (
-    <div className="flex items-center gap-1 rounded border border-border-subtle bg-surface-2 p-1">
-      <span className="px-1 text-text-muted">{label}</span>
+    <div className="flex h-8 items-center gap-1 rounded-md border border-border-subtle bg-surface-2 px-1">
+      <span className="px-1 text-[11px] text-text-muted">{label}</span>
       {options.map(([optionValue, optionLabel]) => (
         <button
           key={optionValue}
           onClick={() => onChange(optionValue)}
-          className={`rounded px-2 py-1 transition-colors ${
+          className={`h-6 rounded px-2 text-[11px] transition-colors ${
             value === optionValue
               ? 'bg-accent-soft text-text-primary'
               : 'text-text-muted hover:bg-surface-3 hover:text-text-secondary'
