@@ -1,11 +1,11 @@
 ---
 id: FOglDoiu
-status: doing
+status: review
 type: task
 priority: normal
 tags: []
 createdAt: '2026-06-21T15:19:02.801Z'
-updatedAt: '2026-06-21T15:21:48.579Z'
+updatedAt: '2026-06-21T15:35:15.831Z'
 ---
 # تعديلات على ميزة الرحلة
 

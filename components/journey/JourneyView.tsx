@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -13,6 +13,7 @@ import { CardTypeIcon } from '@/components/card/CardTypeIcon'
 import { StatusIcon } from '@/components/card/StatusIcon'
 import { useBoardStore } from '@/lib/store/board'
 import { useT } from '@/lib/i18n'
+import { shouldStartBoardPan } from '@/lib/board-pan'
 import { tagColor } from '@/lib/tag-color'
 import { formatRelative } from '@/lib/utils'
 import { ALL_STATUSES } from '@/lib/types'
@@ -54,6 +55,9 @@ export function JourneyView() {
   const [isLoading, setIsLoading] = useState(false)
   const [customStart, setCustomStart] = useState(toDateInput(startOfDay(new Date())))
   const [customEnd, setCustomEnd] = useState(toDateInput(endOfDay(new Date())))
+  const [isPanning, setIsPanning] = useState(false)
+  const panRef = useRef<{ pointerId: number; x: number } | null>(null)
+  const journeyScrollRef = useRef<HTMLDivElement>(null)
 
   const range = useMemo(() => getRange(preset, customStart, customEnd), [preset, customStart, customEnd])
 
@@ -139,11 +143,12 @@ export function JourneyView() {
 
   const activeEvent = playhead > 0 ? rangeEvents[playhead - 1] : null
   const activeCardId = activeEvent?.cardId ?? null
+  const activeStatus = activeEvent?.after?.status ?? activeEvent?.before?.status ?? null
 
   if (!project) return null
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-bg">
+    <div className="relative flex h-full flex-col overflow-hidden bg-bg">
       <JourneyToolbar
         preset={preset}
         isPlaying={isPlaying}
@@ -157,9 +162,48 @@ export function JourneyView() {
       />
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-accent-soft/35 to-transparent" />
+        <JourneyAtmosphere
+          activeEventId={activeEvent?.id ?? null}
+          isPlaying={isPlaying}
+          playhead={playhead}
+          totalEvents={rangeEvents.length}
+        />
         <LayoutGroup id="journey-board">
-          <div className="flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-bg">
+          <div
+            ref={journeyScrollRef}
+            className={`relative z-10 flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-transparent ${
+              isPanning ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            onPointerDown={event => {
+              if (event.pointerType !== 'mouse' || !shouldStartBoardPan(event)) return
+              panRef.current = { pointerId: event.pointerId, x: event.clientX }
+              setIsPanning(true)
+              event.currentTarget.setPointerCapture(event.pointerId)
+              event.preventDefault()
+            }}
+            onPointerMove={event => {
+              const pan = panRef.current
+              if (!pan || pan.pointerId !== event.pointerId) return
+              const scrollEl = journeyScrollRef.current
+              if (!scrollEl) return
+
+              scrollEl.scrollLeft -= event.clientX - pan.x
+              pan.x = event.clientX
+            }}
+            onPointerUp={event => {
+              const pan = panRef.current
+              if (!pan || pan.pointerId !== event.pointerId) return
+              panRef.current = null
+              setIsPanning(false)
+              event.currentTarget.releasePointerCapture(event.pointerId)
+            }}
+            onPointerCancel={event => {
+              const pan = panRef.current
+              if (!pan || pan.pointerId !== event.pointerId) return
+              panRef.current = null
+              setIsPanning(false)
+            }}
+          >
             {ALL_STATUSES.map((status, index) => (
               <motion.div
                 key={status}
@@ -173,6 +217,7 @@ export function JourneyView() {
                   label={t(STATUS_KEY[status])}
                   cards={grouped[status]}
                   activeCardId={activeCardId}
+                  isActiveColumn={status === activeStatus}
                   emptyLabel={t('board.empty')}
                 />
               </motion.div>
@@ -191,6 +236,49 @@ export function JourneyView() {
           setPlayhead(value)
         }}
       />
+    </div>
+  )
+}
+
+function JourneyAtmosphere({
+  activeEventId,
+  isPlaying,
+  playhead,
+  totalEvents,
+}: {
+  activeEventId: string | null
+  isPlaying: boolean
+  playhead: number
+  totalEvents: number
+}) {
+  const progress = totalEvents > 0 ? Math.round((playhead / totalEvents) * 100) : 0
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0,transparent_13.9%,var(--border-subtle)_14%,transparent_14.2%,transparent_28.3%,var(--border-subtle)_28.5%,transparent_28.7%,transparent_42.7%,var(--border-subtle)_42.9%,transparent_43.1%,transparent_57.1%,var(--border-subtle)_57.3%,transparent_57.5%,transparent_71.5%,var(--border-subtle)_71.7%,transparent_71.9%,transparent_85.8%,var(--border-subtle)_86%,transparent_86.2%)] opacity-70" />
+      <motion.div
+        className="absolute inset-y-0 start-0 w-[22rem] bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.045),var(--accent-soft),transparent)] blur-sm"
+        animate={{ x: `${progress}%`, opacity: isPlaying ? 0.8 : 0.42 }}
+        transition={{ type: 'spring', stiffness: 90, damping: 24 }}
+      />
+      <motion.div
+        className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,var(--accent-soft),transparent)]"
+        animate={{ opacity: isPlaying ? [0.18, 0.36, 0.18] : 0.18 }}
+        transition={{ duration: 1.8, repeat: isPlaying ? Infinity : 0, ease: 'easeInOut' }}
+      />
+      <AnimatePresence>
+        {activeEventId && (
+          <motion.div
+            key={activeEventId}
+            className="absolute inset-x-0 top-0 h-full bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.075)_45%,var(--accent-soft)_50%,transparent_66%)]"
+            initial={{ opacity: 0, x: '-45%' }}
+            animate={{ opacity: [0, 0.9, 0], x: '45%' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.82, ease: [0.16, 1, 0.3, 1] }}
+          />
+        )}
+      </AnimatePresence>
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(0deg,var(--bg),transparent)]" />
     </div>
   )
 }
@@ -344,17 +432,31 @@ function JourneyColumn({
   label,
   cards,
   activeCardId,
+  isActiveColumn,
   emptyLabel,
 }: {
   status: CardStatus
   label: string
   cards: ActivityCardSnapshot[]
   activeCardId: string | null
+  isActiveColumn: boolean
   emptyLabel: string
 }) {
   return (
-    <div className="flex flex-col w-72 shrink-0 h-full transition-all duration-200 border-x border-transparent">
-      <div className="flex shrink-0 items-center justify-between px-3 py-2.5">
+    <div className="relative flex flex-col w-72 shrink-0 h-full transition-all duration-200 border-x border-transparent">
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,var(--accent-soft),transparent_36%)]"
+        animate={{ opacity: isActiveColumn ? 0.52 : 0 }}
+        transition={{ duration: 0.35 }}
+      />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-accent"
+        animate={{ opacity: isActiveColumn ? 1 : 0, scaleX: isActiveColumn ? 1 : 0.2 }}
+        transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+      />
+      <div className="relative flex shrink-0 items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-2">
           <StatusIcon status={status} size={14} />
           <span className="text-sm font-medium text-text-primary">{label}</span>
@@ -364,7 +466,7 @@ function JourneyColumn({
         </div>
       </div>
 
-      <div className="flex-1 column-scroll px-2 pb-3 space-y-2">
+      <div className="relative flex-1 column-scroll px-2 pb-3 space-y-2">
         <AnimatePresence initial={false}>
           {cards.map(card => (
             <JourneyCard key={card.id} card={card} isActive={card.id === activeCardId} />
@@ -426,13 +528,29 @@ function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive:
         transition={{ duration: 0.34 }}
       />
       {isActive && (
-        <motion.span
-          aria-hidden="true"
-          className="pointer-events-none absolute -inset-8 bg-[radial-gradient(circle_at_30%_20%,var(--accent-soft),transparent_58%)]"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: [0, 1, 0], scale: [0.85, 1.18, 1.35] }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        />
+        <>
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-12 top-0 h-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.12),transparent)]"
+            initial={{ x: '-80%', opacity: 0 }}
+            animate={{ x: '80%', opacity: [0, 1, 0] }}
+            transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
+          />
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-1 rounded-md border border-accent-border"
+            initial={{ opacity: 0.9, scale: 0.96 }}
+            animate={{ opacity: 0, scale: 1.08 }}
+            transition={{ duration: 0.74, ease: [0.16, 1, 0.3, 1] }}
+          />
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-2 rounded-md border border-accent-border/70"
+            initial={{ opacity: 0.75, scale: 0.98 }}
+            animate={{ opacity: 0, scale: 1.16 }}
+            transition={{ duration: 0.92, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+          />
+        </>
       )}
 
       {card.priority !== 'normal' && card.priority !== 'low' && (
