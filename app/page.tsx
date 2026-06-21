@@ -6,6 +6,7 @@ import { useUIStore } from '@/lib/store/ui'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { ProjectPicker } from '@/components/projects/ProjectPicker'
 import { Board } from '@/components/board/Board'
+import { JourneyView } from '@/components/journey/JourneyView'
 import { CommandPalette } from '@/components/search/CommandPalette'
 import { matchesShortcut } from '@/lib/shortcuts'
 import { useSettingsStore } from '@/lib/store/settings'
@@ -13,7 +14,7 @@ import '@/lib/ipc'
 
 export default function Home() {
   const { board, project, openProject, refreshBoard } = useBoardStore()
-  const { commandPaletteOpen } = useUIStore()
+  const { commandPaletteOpen, activeView } = useUIStore()
   const paletteShortcut = useSettingsStore(s => s.shortcuts.palette)
 
   // Auto-open last project
@@ -54,7 +55,7 @@ export default function Home() {
 
   return (
     <MainLayout>
-      <Board />
+      {activeView === 'journey' ? <JourneyView /> : <Board />}
       {commandPaletteOpen && <CommandPalette />}
     </MainLayout>
   )

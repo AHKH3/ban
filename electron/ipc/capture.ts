@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { createCard } from '../fs/cards'
 import { indexCard } from '../db'
 import { suppressPath } from '../watcher'
+import { appendActivityEvent, cardSnapshot } from '../fs/activity'
 
 type CardStatus = 'inbox' | 'shape' | 'ready' | 'doing' | 'review' | 'done' | 'killed'
 
@@ -41,6 +42,12 @@ export function setupCaptureIPC(getCaptureWindow: () => BrowserWindow | null): v
   ipcMain.handle('capture:submit', async (_event: Electron.IpcMainInvokeEvent, raw: string, projectPath: string) => {
     const parsed = parseCapture(raw)
     const card = createCard(projectPath, parsed, suppressPath)
+    appendActivityEvent(projectPath, {
+      kind: 'card.created',
+      cardId: card.id,
+      cardTitle: card.title,
+      after: cardSnapshot(card),
+    })
     indexCard(card, projectPath)
     return card
   })

@@ -4,6 +4,7 @@ import { setupCardsIPC } from './cards'
 import { setupSearchIPC } from './search'
 import { setupCaptureIPC } from './capture'
 import { setupWindowIPC } from './window'
+import { setupActivityIPC } from './activity'
 
 export function setupIPC(
   getMainWindow: () => BrowserWindow | null,
@@ -14,4 +15,5 @@ export function setupIPC(
   setupSearchIPC()
   setupCaptureIPC(getCaptureWindow)
   setupWindowIPC(getMainWindow)
+  setupActivityIPC()
 }

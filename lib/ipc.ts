@@ -1,4 +1,4 @@
-import type { BoardData, Card, Project, SearchResult, NewCardInput } from './types'
+import type { BoardData, Card, Project, SearchResult, NewCardInput, ActivityEvent, ActivityRange } from './types'
 import type { ShortcutBinding } from './shortcuts'
 
 export interface ElectronAPI {
@@ -16,6 +16,9 @@ export interface ElectronAPI {
 
   // Search
   searchCards(query: string, projectPath: string): Promise<SearchResult[]>
+
+  // Activity
+  getActivityEvents(projectPath: string, range: ActivityRange): Promise<ActivityEvent[]>
 
   // Capture
   submitCapture(raw: string, projectPath: string): Promise<Card>
