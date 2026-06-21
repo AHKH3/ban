@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { FolderIcon, AddIcon, SettingsIcon } from '@/components/ui/icons'
+import { FolderIcon, AddIcon, SettingsIcon, BoardIcon, DecisionIcon } from '@/components/ui/icons'
 import { BrandMark } from './BrandMark'
 import { useBoardStore } from '@/lib/store/board'
 import { useUIStore } from '@/lib/store/ui'
@@ -13,6 +13,9 @@ export function Sidebar() {
   const { project, openProject } = useBoardStore()
   const sidebarCollapsed = useUIStore(s => s.sidebarCollapsed)
   const openSettings = useUIStore(s => s.openSettings)
+  const activeView = useUIStore(s => s.activeView)
+  const showBoard = useUIStore(s => s.showBoard)
+  const showJourney = useUIStore(s => s.showJourney)
   const [recents, setRecents] = useState<Project[]>([])
   const t = useT()
 
@@ -47,6 +50,33 @@ export function Sidebar() {
       <div className="px-3 pt-3 pb-2">
         <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider px-1 mb-1">{t('projects.heading')}</p>
       </div>
+
+      {project && (
+        <div className="px-2 pb-3 space-y-0.5 border-b border-border-subtle">
+          <button
+            onClick={showBoard}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-start text-sm transition-all active:scale-98 ${
+              activeView === 'board'
+                ? 'bg-accent-soft text-text-primary font-medium'
+                : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+            }`}
+          >
+            <BoardIcon size={14} className={activeView === 'board' ? 'text-accent' : 'text-text-muted'} />
+            <span className="truncate ps-1.5">{t('nav.board')}</span>
+          </button>
+          <button
+            onClick={showJourney}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-start text-sm transition-all active:scale-98 ${
+              activeView === 'journey'
+                ? 'bg-accent-soft text-text-primary font-medium'
+                : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+            }`}
+          >
+            <DecisionIcon size={14} className={activeView === 'journey' ? 'text-accent' : 'text-text-muted'} />
+            <span className="truncate ps-1.5">{t('nav.journey')}</span>
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
         {recents.map(r => {

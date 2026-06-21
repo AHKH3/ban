@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Search
   searchCards: (query: string, projectPath: string) => ipcRenderer.invoke('search:query', query, projectPath),
 
+  // Activity
+  getActivityEvents: (projectPath: string, range: Record<string, unknown>) =>
+    ipcRenderer.invoke('activity:list', projectPath, range),
+
   // Capture
   submitCapture: (raw: string, projectPath: string) => ipcRenderer.invoke('capture:submit', raw, projectPath),
   closeCaptureWindow: () => ipcRenderer.invoke('capture:close'),

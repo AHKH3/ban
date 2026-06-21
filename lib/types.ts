@@ -49,6 +49,49 @@ export interface SearchResult {
   excerpt: string
 }
 
+export type ActivityKind =
+  | 'card.created'
+  | 'card.updated'
+  | 'card.moved'
+  | 'card.deleted'
+  | 'card.restored'
+  | 'project.config.updated'
+  | 'project.tags.updated'
+  | 'project.settings.updated'
+
+export interface ActivityCardSnapshot {
+  id: string
+  title: string
+  status: CardStatus
+  type: CardType
+  priority: CardPriority
+  tags: string[]
+  createdAt: string
+  updatedAt: string
+  fileName?: string
+}
+
+export interface ActivityEvent {
+  id: string
+  schemaVersion: 1
+  kind: ActivityKind
+  actor: 'ban'
+  source: 'app'
+  createdAt: string
+  cardId?: string
+  cardTitle?: string
+  before?: ActivityCardSnapshot
+  after?: ActivityCardSnapshot
+  changedFields?: string[]
+}
+
+export interface ActivityRange {
+  start?: string
+  end?: string
+}
+
+export type JourneyReplayMode = 'range-state' | 'empty'
+
 export const ALL_STATUSES: CardStatus[] = [
   'inbox', 'shape', 'ready', 'doing', 'review', 'done', 'killed',
 ]
