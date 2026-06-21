@@ -1,0 +1,58 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useBoardStore } from '@/lib/store/board'
+import { useUIStore } from '@/lib/store/ui'
+import { MainLayout } from '@/components/layout/MainLayout'
+import { ProjectPicker } from '@/components/projects/ProjectPicker'
+import { Board } from '@/components/board/Board'
+import { CommandPalette } from '@/components/search/CommandPalette'
+import '@/lib/ipc'
+
+export default function Home() {
+  const { board, project, openProject, refreshBoard } = useBoardStore()
+  const { commandPaletteOpen } = useUIStore()
+
+  // Auto-open last project
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI) return
+    window.electronAPI.getDefaultProjectPath().then(p => {
+      if (p) openProject(p)
+    })
+  }, [openProject])
+
+  // Listen for board changes from file watcher
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI) return
+    const unsub = window.electronAPI.onBoardChanged(() => refreshBoard())
+    return unsub
+  }, [refreshBoard])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        useUIStore.getState().openCommandPalette()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  if (!project) {
+    return (
+      <>
+        <ProjectPicker />
+        {commandPaletteOpen && <CommandPalette />}
+      </>
+    )
+  }
+
+  return (
+    <MainLayout>
+      <Board />
+      {commandPaletteOpen && <CommandPalette />}
+    </MainLayout>
+  )
+}

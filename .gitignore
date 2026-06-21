@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Electron build output
+dist/
+dist-electron/
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+*.log
+dev*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Loose AI-generated source images (baked into public/ & resources/)
+ChatG*.png
+ChatGPT*.png
+
+# Local env
+.env*
+!.env.example
+
+# Claude Code tooling
+.claude/

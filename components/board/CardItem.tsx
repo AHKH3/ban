@@ -1,0 +1,123 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { CardTypeIcon } from '@/components/card/CardTypeIcon'
+import { StatusIcon } from '@/components/card/StatusIcon'
+import { useBoardStore } from '@/lib/store/board'
+import type { Card } from '@/lib/types'
+import { ALL_STATUSES } from '@/lib/types'
+import { useT } from '@/lib/i18n'
+import { tagColor } from '@/lib/tag-color'
+import { formatRelative } from '@/lib/utils'
+
+interface Props {
+  card: Card
+  onClick: (card: Card) => void
+}
+
+const PRIORITY_DOT: Record<string, string> = {
+  urgent: 'bg-danger',
+  high: 'bg-warning',
+  normal: 'bg-transparent',
+  low: 'bg-transparent',
+}
+
+const PRIORITY_KEY: Record<string, string> = {
+  urgent: 'priority.urgent', high: 'priority.high', normal: 'priority.normal', low: 'priority.low',
+}
+
+export function CardItem({ card, onClick }: Props) {
+  const { moveCard } = useBoardStore()
+  const t = useT()
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Native HTML5 drag — attached via ref so framer-motion's own onDragStart
+  // gesture prop doesn't shadow it.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onDragStart = (e: DragEvent) => {
+      e.dataTransfer?.setData('text/ban-card-id', card.id)
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+    }
+    el.addEventListener('dragstart', onDragStart)
+    return () => el.removeEventListener('dragstart', onDragStart)
+  }, [card.id])
+
+  // Click the status icon to advance to the next pipeline status.
+  const advanceStatus = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const i = ALL_STATUSES.indexOf(card.status)
+    const next = ALL_STATUSES[(i + 1) % ALL_STATUSES.length]
+    moveCard(card.id, next)
+  }
+
+  return (
+    <motion.div
+      layout
+      layoutId={`card-${card.id}`}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.12 }}
+      ref={ref}
+      draggable
+      onClick={() => onClick(card)}
+      className="group relative bg-surface-2 border border-border-subtle rounded-lg p-3 cursor-pointer
+        hover:border-border-strong hover:bg-surface-3 active:scale-[0.99]
+        transition-all duration-[var(--motion-fast)]"
+    >
+      {/* Priority dot */}
+      {card.priority !== 'normal' && card.priority !== 'low' && (
+        <span
+          className={`absolute top-3 end-3 w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[card.priority]}`}
+          title={t(PRIORITY_KEY[card.priority])}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex items-start gap-2">
+        <button
+          onClick={advanceStatus}
+          className="mt-0.5 shrink-0 rounded hover:opacity-70 transition-opacity"
+          title={t('card.status')}
+        >
+          <StatusIcon status={card.status} size={15} />
+        </button>
+        <div className="mt-0.5 shrink-0">
+          <CardTypeIcon type={card.type} size={13} />
+        </div>
+        <p className="text-sm text-text-primary leading-snug line-clamp-2 flex-1 min-w-0 pe-3">
+          {card.title}
+        </p>
+      </div>
+
+      {/* Tags */}
+      {card.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2 ms-10">
+          {card.tags.slice(0, 4).map(tag => {
+            const c = tagColor(tag)
+            return (
+              <span
+                key={tag}
+                className="text-[11px] rounded px-1.5 py-0.5 border"
+                style={{ color: c.text, background: c.bg, borderColor: c.border }}
+              >
+                #{tag}
+              </span>
+            )
+          })}
+          {card.tags.length > 4 && (
+            <span className="text-[11px] text-text-muted">+{card.tags.length - 4}</span>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
+        {formatRelative(card.updatedAt)}
+      </div>
+    </motion.div>
+  )
+}
