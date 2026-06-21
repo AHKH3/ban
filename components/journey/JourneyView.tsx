@@ -514,7 +514,7 @@ function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive:
       }}
       exit={{ opacity: 0, scale: 0.92, y: -10, rotate: 1.4, filter: 'blur(3px)' }}
       transition={CARD_LAYOUT_TRANSITION}
-      className={`group/card relative cursor-default overflow-hidden rounded-lg border bg-surface-2 p-3 transition-colors duration-300 ${
+      className={`group/card relative cursor-default overflow-hidden rounded-lg border bg-surface-2 p-3 transition-colors duration-300 focus:outline-none focus-visible:outline-none ${
         isActive
           ? 'border-accent-border bg-accent-soft/20 shadow-[0_12px_30px_rgba(0,0,0,0.2)]'
           : 'border-border-subtle'

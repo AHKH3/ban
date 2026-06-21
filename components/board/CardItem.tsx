@@ -123,7 +123,7 @@ export function CardItem({ card, onClick }: Props) {
         }
         onClick(card)
       }}
-      className={`group/card relative overflow-hidden border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200
+      className={`group/card relative overflow-hidden border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200 focus:outline-none focus-visible:outline-none
         ${isSelected ? 'border-accent-border bg-accent-soft/20' : 'bg-surface-2'}
         ${isDragging
           ? 'opacity-30 border-dashed border-border-strong bg-surface-1/50 scale-[0.98]'
