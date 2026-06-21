@@ -11,6 +11,7 @@ import { useT } from '@/lib/i18n'
 import { tagColor } from '@/lib/tag-color'
 import { formatRelative } from '@/lib/utils'
 import { getDraggedCardIds } from '@/lib/card-selection'
+import { TaskIcon } from '@/components/ui/icons'
 
 interface Props {
   card: Card
@@ -122,13 +123,28 @@ export function CardItem({ card, onClick }: Props) {
         }
         onClick(card)
       }}
-      className={`group/card relative bg-surface-2 border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200
-        ${isSelected ? 'ring-2 ring-accent/70 border-accent bg-accent-soft/15' : ''}
-        ${isDragging 
-          ? 'opacity-30 border-dashed border-border-strong bg-surface-1/50 scale-[0.98]' 
-          : 'border-border-subtle hover:border-border-strong hover:bg-surface-3 hover:-translate-y-0.5 hover:shadow-md active:scale-98'}`}
+      className={`group/card relative overflow-hidden border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200
+        ${isSelected ? 'border-accent-border bg-accent-soft/20' : 'bg-surface-2'}
+        ${isDragging
+          ? 'opacity-30 border-dashed border-border-strong bg-surface-1/50 scale-[0.98]'
+          : isSelected
+            ? 'hover:bg-accent-soft/25 hover:shadow-md'
+            : 'border-border-subtle hover:border-border-strong hover:bg-surface-3 hover:-translate-y-0.5 hover:shadow-md active:scale-98'}`}
       aria-selected={isSelected}
     >
+      {isSelected && (
+        <>
+          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-accent" />
+          <span
+            data-testid="selected-card-check"
+            className="pointer-events-none absolute bottom-2 end-2 grid h-5 w-5 place-items-center rounded bg-accent text-accent-contrast shadow-sm"
+            aria-hidden="true"
+          >
+            <TaskIcon size={13} color="var(--accent-contrast)" strokeWidth={2} />
+          </span>
+        </>
+      )}
+
       {/* Priority dot */}
       {card.priority !== 'normal' && card.priority !== 'low' && (
         <span

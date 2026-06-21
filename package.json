@@ -8,7 +8,7 @@
     "dev": "tsc -p tsconfig.electron.json && concurrently -n next,tsc,electron -c cyan,yellow,green \"next dev\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
     "dev:next": "next dev",
     "dev:electron": "wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .",
-    "build": "next build && tsc -p tsconfig.electron.json",
+    "build": "cross-env NEXT_DIST_DIR=.next-build next build && tsc -p tsconfig.electron.json",
     "dist": "npm run build && electron-builder",
     "postinstall": "electron-builder install-app-deps"
   },

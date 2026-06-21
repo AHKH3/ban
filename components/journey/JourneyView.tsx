@@ -508,7 +508,7 @@ function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive:
       animate={{
         opacity: 1,
         y: 0,
-        scale: isActive ? 1.025 : 1,
+        scale: 1,
         rotate: 0,
         filter: 'blur(0px)',
       }}
@@ -516,41 +516,19 @@ function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive:
       transition={CARD_LAYOUT_TRANSITION}
       className={`group/card relative cursor-default overflow-hidden rounded-lg border bg-surface-2 p-3 transition-colors duration-300 ${
         isActive
-          ? 'border-accent-border shadow-[0_14px_38px_rgba(0,0,0,0.24),0_0_0_1px_var(--accent-soft),0_0_28px_var(--accent-soft)]'
+          ? 'border-accent-border bg-accent-soft/20 shadow-[0_12px_30px_rgba(0,0,0,0.2)]'
           : 'border-border-subtle'
       }`}
     >
       <motion.span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent-soft via-transparent to-transparent"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,var(--accent-soft),transparent_72%)]"
         initial={false}
-        animate={{ opacity: isActive ? 0.95 : 0 }}
+        animate={{ opacity: isActive ? 0.72 : 0 }}
         transition={{ duration: 0.34 }}
       />
       {isActive && (
-        <>
-          <motion.span
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-x-12 top-0 h-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.12),transparent)]"
-            initial={{ x: '-80%', opacity: 0 }}
-            animate={{ x: '80%', opacity: [0, 1, 0] }}
-            transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
-          />
-          <motion.span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-1 rounded-md border border-accent-border"
-            initial={{ opacity: 0.9, scale: 0.96 }}
-            animate={{ opacity: 0, scale: 1.08 }}
-            transition={{ duration: 0.74, ease: [0.16, 1, 0.3, 1] }}
-          />
-          <motion.span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-2 rounded-md border border-accent-border/70"
-            initial={{ opacity: 0.75, scale: 0.98 }}
-            animate={{ opacity: 0, scale: 1.16 }}
-            transition={{ duration: 0.92, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-          />
-        </>
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-accent" />
       )}
 
       {card.priority !== 'normal' && card.priority !== 'low' && (
