@@ -26,6 +26,18 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
   appBundle,
+  /inset-x-0 bottom-0 h-1 bg-accent|hover:bg-accent-soft\/25/,
+  'packaged selected cards should not include full-width bars or old pale-accent hover styling',
+)
+
+assert.match(
+  appBundle,
+  /selected-card-check[\s\S]*?rounded-full/,
+  'packaged selected cards should include a circular check badge',
+)
+
+assert.doesNotMatch(
+  appBundle,
   /inset-1 rounded-md border border-accent-border|inset-2 rounded-md border border-accent-border/,
   'packaged journey bundle should not include the old active-card overlay rings',
 )

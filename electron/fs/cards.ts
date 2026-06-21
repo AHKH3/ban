@@ -1,10 +1,10 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import matter from 'gray-matter'
-import { nanoid } from 'nanoid'
 import slugify from 'slugify'
 import type { Card, CardStatus, NewCardInput } from '../../lib/types'
-import { columnDir, saveTags } from './project'
+import { nextCardIdForProject } from './card-id'
+import { columnDir } from './project'
 
 export function makeSlug(title: string): string {
   return slugify(title, { lower: true, strict: true, trim: true }).slice(0, 50) || 'card'
@@ -167,7 +167,7 @@ export function createCard(
   input: NewCardInput,
   suppressFn?: (filePath: string) => void
 ): Card {
-  const id = nanoid(8)
+  const id = nextCardIdForProject(projectPath)
   const now = new Date().toISOString()
   const card: Omit<Card, 'filePath' | 'fileName'> = {
     id,

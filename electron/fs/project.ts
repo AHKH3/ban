@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import type { BoardData, CardStatus, Card } from '../../lib/types'
+import { migrateProjectCardIds } from './card-id'
 import { readCardFile } from './cards'
 
 const STATUSES: CardStatus[] = ['inbox', 'shape', 'ready', 'doing', 'review', 'done', 'killed']
@@ -27,6 +28,7 @@ export function initProject(projectPath: string): void {
   if (!fs.existsSync(kDir)) {
     fs.mkdirSync(kDir, { recursive: true })
   }
+  ensureKanbanIgnored(projectPath)
 
   const columnsDir = path.join(kDir, 'columns')
   for (const status of STATUSES) {
@@ -49,12 +51,12 @@ export function initProject(projectPath: string): void {
   if (!fs.existsSync(tagsPath)) {
     fs.writeFileSync(tagsPath, JSON.stringify({ tags: [] }, null, 2), 'utf-8')
   }
+
+  migrateProjectCardIds(projectPath)
 }
 
 export function readBoard(projectPath: string): BoardData {
-  if (!isKanbanProject(projectPath)) {
-    initProject(projectPath)
-  }
+  initProject(projectPath)
 
   const configPath = path.join(kanbanDir(projectPath), 'config.json')
   let projectName = path.basename(projectPath)
@@ -105,4 +107,24 @@ export function readBoard(projectPath: string): BoardData {
 export function saveTags(projectPath: string, tags: string[]): void {
   const tagsPath = path.join(kanbanDir(projectPath), 'tags.json')
   fs.writeFileSync(tagsPath, JSON.stringify({ tags }, null, 2), 'utf-8')
+}
+
+function ensureKanbanIgnored(projectPath: string): void {
+  const gitignorePath = path.join(projectPath, '.gitignore')
+  const rule = '.kanban/'
+
+  let gitignore = ''
+  if (fs.existsSync(gitignorePath)) {
+    gitignore = fs.readFileSync(gitignorePath, 'utf-8')
+  }
+
+  const hasRule = gitignore
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .some(line => line === rule || line === '.kanban')
+
+  if (hasRule) return
+
+  const prefix = gitignore.length === 0 || gitignore.endsWith('\n') ? '' : '\n'
+  fs.writeFileSync(gitignorePath, `${gitignore}${prefix}${rule}\n`, 'utf-8')
 }

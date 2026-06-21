@@ -124,25 +124,22 @@ export function CardItem({ card, onClick }: Props) {
         onClick(card)
       }}
       className={`group/card relative overflow-hidden border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200 focus:outline-none focus-visible:outline-none
-        ${isSelected ? 'border-accent-border bg-accent-soft/20' : 'bg-surface-2'}
+        ${isSelected ? 'border-border-strong bg-surface-3 shadow-md' : 'bg-surface-2'}
         ${isDragging
           ? 'opacity-30 border-dashed border-border-strong bg-surface-1/50 scale-[0.98]'
           : isSelected
-            ? 'hover:bg-accent-soft/25 hover:shadow-md'
+            ? 'hover:border-accent-border hover:bg-surface-3'
             : 'border-border-subtle hover:border-border-strong hover:bg-surface-3 hover:-translate-y-0.5 hover:shadow-md active:scale-98'}`}
       aria-selected={isSelected}
     >
       {isSelected && (
-        <>
-          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-accent" />
-          <span
-            data-testid="selected-card-check"
-            className="pointer-events-none absolute bottom-2 end-2 grid h-5 w-5 place-items-center rounded bg-accent text-accent-contrast shadow-sm"
-            aria-hidden="true"
-          >
-            <TaskIcon size={13} color="var(--accent-contrast)" strokeWidth={2} />
-          </span>
-        </>
+        <span
+          data-testid="selected-card-check"
+          className="pointer-events-none absolute bottom-2 end-2 grid h-5 w-5 place-items-center rounded-full border border-accent-border bg-surface-2 text-accent shadow-sm"
+          aria-hidden="true"
+        >
+          <TaskIcon size={12} color="var(--accent)" strokeWidth={2} />
+        </span>
       )}
 
       {/* Priority dot */}
@@ -165,6 +162,9 @@ export function CardItem({ card, onClick }: Props) {
         <div className="mt-0.5 shrink-0">
           <CardTypeIcon type={card.type} size={13} />
         </div>
+        <span className="mt-0.5 shrink-0 rounded border border-border-subtle bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] leading-none text-text-muted">
+          {card.id}
+        </span>
         <p className="text-sm text-text-primary leading-snug line-clamp-2 flex-1 min-w-0 pe-3">
           {card.title}
         </p>

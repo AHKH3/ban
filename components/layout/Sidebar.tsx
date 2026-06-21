@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { FolderIcon, AddIcon, SettingsIcon, BoardIcon, DecisionIcon } from '@/components/ui/icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ActivitySparkIcon } from '@hugeicons/core-free-icons'
+import { FolderIcon, AddIcon, SettingsIcon, BoardIcon } from '@/components/ui/icons'
 import { BrandMark } from './BrandMark'
 import { useBoardStore } from '@/lib/store/board'
 import { useUIStore } from '@/lib/store/ui'
@@ -72,7 +74,12 @@ export function Sidebar() {
                 : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
             }`}
           >
-            <DecisionIcon size={14} className={activeView === 'journey' ? 'text-accent' : 'text-text-muted'} />
+            <HugeiconsIcon
+              icon={ActivitySparkIcon}
+              size={14}
+              strokeWidth={1.6}
+              className={activeView === 'journey' ? 'text-accent' : 'text-text-muted'}
+            />
             <span className="truncate ps-1.5">{t('nav.journey')}</span>
           </button>
         </div>

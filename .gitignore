@@ -18,6 +18,9 @@ next-env.d.ts
 *.log
 dev*.log
 
+# Local Ban project data
+.kanban/
+
 # OS / editor
 .DS_Store
 Thumbs.db

@@ -6,6 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ActivitySparkIcon,
   CalendarRangeIcon,
+  Target02Icon,
   PauseIcon,
   PlayIcon,
 } from '@hugeicons/core-free-icons'
@@ -56,6 +57,7 @@ export function JourneyView() {
   const [customStart, setCustomStart] = useState(toDateInput(startOfDay(new Date())))
   const [customEnd, setCustomEnd] = useState(toDateInput(endOfDay(new Date())))
   const [isPanning, setIsPanning] = useState(false)
+  const [autoFollow, setAutoFollow] = useState(true)
   const panRef = useRef<{ pointerId: number; x: number } | null>(null)
   const journeyScrollRef = useRef<HTMLDivElement>(null)
 
@@ -144,6 +146,19 @@ export function JourneyView() {
   const activeEvent = playhead > 0 ? rangeEvents[playhead - 1] : null
   const activeCardId = activeEvent?.cardId ?? null
   const activeStatus = activeEvent?.after?.status ?? activeEvent?.before?.status ?? null
+  const lockManualPan = autoFollow && isPlaying
+
+  useEffect(() => {
+    if (!autoFollow || !isPlaying || !activeCardId) return
+
+    const scrollEl = journeyScrollRef.current
+    const activeCard = scrollEl?.querySelector<HTMLElement>(`[data-journey-card-id="${cssEscape(activeCardId)}"]`)
+    activeCard?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    })
+  }, [activeCardId, autoFollow, isPlaying, playhead])
 
   if (!project) return null
 
@@ -157,6 +172,8 @@ export function JourneyView() {
         customEnd={customEnd}
         onPresetChange={value => setPreset(value)}
         onTogglePlaying={() => setIsPlaying(value => !value)}
+        autoFollow={autoFollow}
+        onToggleAutoFollow={() => setAutoFollow(value => !value)}
         onCustomStartChange={setCustomStart}
         onCustomEndChange={setCustomEnd}
       />
@@ -172,9 +189,10 @@ export function JourneyView() {
           <div
             ref={journeyScrollRef}
             className={`relative z-10 flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-transparent ${
-              isPanning ? 'cursor-grabbing' : 'cursor-grab'
+              lockManualPan ? 'cursor-default' : isPanning ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             onPointerDown={event => {
+              if (lockManualPan) return
               if (event.pointerType !== 'mouse' || !shouldStartBoardPan(event)) return
               panRef.current = { pointerId: event.pointerId, x: event.clientX }
               setIsPanning(true)
@@ -291,6 +309,8 @@ function JourneyToolbar({
   customEnd,
   onPresetChange,
   onTogglePlaying,
+  autoFollow,
+  onToggleAutoFollow,
   onCustomStartChange,
   onCustomEndChange,
 }: {
@@ -301,6 +321,8 @@ function JourneyToolbar({
   customEnd: string
   onPresetChange: (preset: RangePreset) => void
   onTogglePlaying: () => void
+  autoFollow: boolean
+  onToggleAutoFollow: () => void
   onCustomStartChange: (date: string) => void
   onCustomEndChange: (date: string) => void
 }) {
@@ -329,6 +351,21 @@ function JourneyToolbar({
             ]}
             onChange={value => onPresetChange(value as RangePreset)}
           />
+
+          <button
+            type="button"
+            onClick={onToggleAutoFollow}
+            title={autoFollow ? t('journey.autoFollowOn') : t('journey.autoFollowOff')}
+            aria-label={autoFollow ? t('journey.autoFollowOn') : t('journey.autoFollowOff')}
+            aria-pressed={autoFollow}
+            className={`flex h-8 w-8 items-center justify-center rounded-md border transition-all active:scale-95 ${
+              autoFollow
+                ? 'border-accent-border bg-accent-soft text-accent shadow-[0_0_14px_var(--accent-soft)]'
+                : 'border-border-subtle bg-surface-2 text-text-muted hover:bg-surface-3 hover:text-text-secondary'
+            }`}
+          >
+            <HugeiconsIcon icon={Target02Icon} size={15} strokeWidth={1.7} />
+          </button>
 
           <button
             onClick={onTogglePlaying}
@@ -504,6 +541,7 @@ function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive:
     <motion.div
       layout
       layoutId={`journey-card-${card.id}`}
+      data-journey-card-id={card.id}
       initial={{ opacity: 0, y: 18, scale: 0.96, rotate: -1.2, filter: 'blur(4px)' }}
       animate={{
         opacity: 1,
@@ -516,20 +554,17 @@ function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive:
       transition={CARD_LAYOUT_TRANSITION}
       className={`group/card relative cursor-default overflow-hidden rounded-lg border bg-surface-2 p-3 transition-colors duration-300 focus:outline-none focus-visible:outline-none ${
         isActive
-          ? 'border-accent-border bg-accent-soft/20 shadow-[0_12px_30px_rgba(0,0,0,0.2)]'
+          ? 'border-border-strong bg-surface-3 shadow-[0_10px_24px_rgba(0,0,0,0.18)]'
           : 'border-border-subtle'
       }`}
     >
       <motion.span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,var(--accent-soft),transparent_72%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent_72%)]"
         initial={false}
-        animate={{ opacity: isActive ? 0.72 : 0 }}
+        animate={{ opacity: isActive ? 1 : 0 }}
         transition={{ duration: 0.34 }}
       />
-      {isActive && (
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-accent" />
-      )}
 
       {card.priority !== 'normal' && card.priority !== 'low' && (
         <span
@@ -691,4 +726,9 @@ function toDateInput(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function cssEscape(value: string): string {
+  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(value)
+  return value.replace(/["\\]/g, '\\$&')
 }
