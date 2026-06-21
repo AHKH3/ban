@@ -140,7 +140,10 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
-  /* Font stacks (font CSS vars injected by next/font on <body>) */
+  /* Font stacks */
+  --font-en: Georgia, 'Times New Roman', serif;
+  --font-ar: 'Noto Naskh Arabic', serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
   --font-en-stack: var(--font-en), Georgia, 'Times New Roman', serif;
   --font-ar-stack: var(--font-ar), 'Noto Naskh Arabic', serif;
   --font-mono-stack: var(--font-mono), 'JetBrains Mono', Consolas, monospace;
@@ -162,8 +165,21 @@ body {
   height: 100%;
   overflow: hidden;
   user-select: none;
+  -webkit-user-select: none;
   transition: background-color var(--motion-base) var(--ease-out);
 }
+
+/* Always allow text interaction in input fields — overrides user-select: none on body */
+input,
+textarea,
+select,
+[contenteditable] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
+  cursor: text;
+}
+select { cursor: default; }
 
 #__next,
 main {
@@ -275,12 +291,41 @@ html[lang='ar'] [contenteditable] {
   -webkit-app-region: no-drag;
 }
 
-/* Thin scrollbar for columns */
+/* Thin scrollbar for columns (auto-hide unless hovered) */
 .column-scroll {
   overflow-y: auto;
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s var(--ease-out);
+}
+
+.column-scroll:hover {
   scrollbar-color: var(--border-strong) transparent;
 }
+
+/* Webkit scrollbar customization for columns */
+.column-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background-color 0.25s var(--ease-out);
+}
+
+.column-scroll:hover::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+
+.column-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted) !important;
+}
+
+/* Drag preview styling for 3D tilted card effect */
+.drag-preview-style {
+  transform: rotate(2.5deg) scale(1.02) !important;
+  box-shadow: var(--shadow-panel) !important;
+  border-color: var(--accent) !important;
+  background-color: var(--surface-3) !important;
+  opacity: 0.95 !important;
+}
+
 
 /* ============================================================
    Inline Markdown editor (TipTap / ProseMirror)
@@ -367,4 +412,3 @@ html[lang='ar'] [contenteditable] {
   color: var(--text-muted);
   text-decoration: line-through;
 }
-

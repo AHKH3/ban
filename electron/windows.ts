@@ -1,10 +1,16 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
 import * as path from 'path'
 
 const RENDERER_URL = 'http://localhost:3000'
 // __dirname in prod = dist-electron/electron/, so go up two levels to reach project root
 const RENDERER_OUT = path.join(__dirname, '..', '..', 'out')
-const APP_ICON = path.join(__dirname, '..', '..', 'resources', 'icon.png')
+
+// In a packaged build the asar boundary means __dirname can't reach resources/;
+// instead electron exposes process.resourcesPath which always points to the
+// real resources folder alongside the asar.
+const APP_ICON = app.isPackaged
+  ? path.join(process.resourcesPath, 'icon.png')
+  : path.join(__dirname, '..', '..', 'resources', 'icon.png')
 
 export function createMainWindow(isDev: boolean): BrowserWindow {
   const win = new BrowserWindow({

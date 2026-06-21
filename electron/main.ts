@@ -9,6 +9,7 @@ let mainWindow: BrowserWindow | null = null
 let captureWindow: BrowserWindow | null = null
 
 app.whenReady().then(async () => {
+  app.setAppUserModelId('com.ban.kanban-capture')
   mainWindow = createMainWindow(isDev)
   setupIPC(() => mainWindow, () => captureWindow)
 

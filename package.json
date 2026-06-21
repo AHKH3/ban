@@ -45,6 +45,7 @@
     "framer-motion": "^11.2.12",
     "next": "^14.2.4",
     "postcss": "^8.4.38",
+    "rcedit": "^5.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.4",
@@ -55,6 +56,7 @@
   "build": {
     "appId": "com.ban.kanban-capture",
     "productName": "Ban",
+    "afterPack": "./scripts/after-pack.js",
     "directories": {
       "output": "dist",
       "buildResources": "resources"
@@ -63,15 +65,18 @@
       "dist-electron/**/*",
       "out/**/*",
       "node_modules/**/*",
-      "package.json"
+      "package.json",
+      "resources/**/*"
     ],
     "win": {
       "target": "nsis",
-      "icon": "resources/icon.ico"
+      "icon": "resources/icon.ico",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "packElevateHelper": false
     }
   }
 }

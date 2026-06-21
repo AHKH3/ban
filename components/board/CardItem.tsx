@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CardTypeIcon } from '@/components/card/CardTypeIcon'
 import { StatusIcon } from '@/components/card/StatusIcon'
@@ -31,19 +31,66 @@ export function CardItem({ card, onClick }: Props) {
   const { moveCard } = useBoardStore()
   const t = useT()
   const ref = useRef<HTMLDivElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Native HTML5 drag — attached via ref so framer-motion's own onDragStart
   // gesture prop doesn't shadow it.
   useEffect(() => {
     const el = ref.current
     if (!el) return
+
     const onDragStart = (e: DragEvent) => {
       e.dataTransfer?.setData('text/ban-card-id', card.id)
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move'
+      }
+
+      // Build a styled offscreen clone to use as the drag ghost.
+      // This is the only reliable way to produce a custom drag image
+      // because the browser captures the element snapshot immediately
+      // during the dragstart event — class additions via setTimeout are too late.
+      const rect = el.getBoundingClientRect()
+      const clone = el.cloneNode(true) as HTMLElement
+      clone.style.cssText = [
+        `width:${rect.width}px`,
+        `position:fixed`,
+        `top:-9999px`,
+        `left:-9999px`,
+        `transform:rotate(3deg) scale(1.04)`,
+        `box-shadow:0 20px 60px rgba(0,0,0,0.5),0 4px 12px rgba(0,0,0,0.35)`,
+        `border:1px solid var(--accent)`,
+        `border-radius:8px`,
+        `background:var(--surface-3)`,
+        `opacity:0.96`,
+        `pointer-events:none`,
+      ].join(';')
+      document.body.appendChild(clone)
+
+      // Offset so the grab point aligns with where the user clicked
+      const offsetX = e.clientX - rect.left
+      const offsetY = e.clientY - rect.top
+      e.dataTransfer?.setDragImage(clone, offsetX, offsetY)
+
+      // Remove the clone after the browser has captured the drag image
+      requestAnimationFrame(() => {
+        document.body.removeChild(clone)
+        setIsDragging(true)
+      })
     }
+
+    const onDragEnd = () => {
+      setIsDragging(false)
+    }
+
     el.addEventListener('dragstart', onDragStart)
-    return () => el.removeEventListener('dragstart', onDragStart)
+    el.addEventListener('dragend', onDragEnd)
+
+    return () => {
+      el.removeEventListener('dragstart', onDragStart)
+      el.removeEventListener('dragend', onDragEnd)
+    }
   }, [card.id])
+
 
   // Click the status icon to advance to the next pipeline status.
   const advanceStatus = (e: React.MouseEvent) => {
@@ -64,9 +111,10 @@ export function CardItem({ card, onClick }: Props) {
       ref={ref}
       draggable
       onClick={() => onClick(card)}
-      className="group relative bg-surface-2 border border-border-subtle rounded-lg p-3 cursor-pointer
-        hover:border-border-strong hover:bg-surface-3 active:scale-[0.99]
-        transition-all duration-[var(--motion-fast)]"
+      className={`group/card relative bg-surface-2 border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-200
+        ${isDragging 
+          ? 'opacity-30 border-dashed border-border-strong bg-surface-1/50 scale-[0.98]' 
+          : 'border-border-subtle hover:border-border-strong hover:bg-surface-3 hover:-translate-y-0.5 hover:shadow-md active:scale-98'}`}
     >
       {/* Priority dot */}
       {card.priority !== 'normal' && card.priority !== 'low' && (
@@ -80,7 +128,7 @@ export function CardItem({ card, onClick }: Props) {
       <div className="flex items-start gap-2">
         <button
           onClick={advanceStatus}
-          className="mt-0.5 shrink-0 rounded hover:opacity-70 transition-opacity"
+          className="mt-0.5 shrink-0 rounded transition-all hover:scale-110 hover:rotate-12 active:scale-90 duration-150"
           title={t('card.status')}
         >
           <StatusIcon status={card.status} size={15} />
@@ -101,7 +149,7 @@ export function CardItem({ card, onClick }: Props) {
             return (
               <span
                 key={tag}
-                className="text-[11px] rounded px-1.5 py-0.5 border"
+                className="text-[11px] rounded px-1.5 py-0.5 border transition-all duration-150 hover:scale-105 hover:border-accent-border cursor-default"
                 style={{ color: c.text, background: c.bg, borderColor: c.border }}
               >
                 #{tag}
@@ -115,7 +163,7 @@ export function CardItem({ card, onClick }: Props) {
       )}
 
       {/* Footer */}
-      <div className="mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover/card:opacity-100 transition-opacity">
         {formatRelative(card.updatedAt)}
       </div>
     </motion.div>

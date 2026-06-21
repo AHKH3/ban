@@ -53,18 +53,18 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/55 backdrop-blur-[6px]"
       onClick={closeCommandPalette}
     >
       <motion.div
-        initial={{ scale: 0.97, opacity: 0, y: -8 }}
+        initial={{ scale: 0.96, opacity: 0, y: -10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.97, opacity: 0, y: -8 }}
-        transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+        exit={{ scale: 0.96, opacity: 0, y: -10 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 240 }}
         className="bg-surface-1 border border-border-strong rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle focus-within:border-accent/40 focus-within:shadow-[inset_0_1px_1px_rgba(0,0,0,0.075),0_0_8px_var(--accent-soft)] transition-all duration-200">
           <SearchIcon size={16} />
           <input
             ref={inputRef}

@@ -1,7 +1,5 @@
 'use client'
 
-import Image from 'next/image'
-
 /**
  * Icon-only brand mark (the Ban mascot) inside a theme-safe rounded tile.
  * Uses only the icon — never the icon+wordmark image — per design spec.
@@ -20,7 +18,7 @@ export function BrandMark({ size = 28, rounded = 8 }: { size?: number; rounded?:
         boxShadow: '0 0 0 1px var(--tile-ring)',
       }}
     >
-      <Image src="/icon-mark.png" alt="Ban" width={inner} height={inner} priority />
+      <img src="./icon-mark.png" alt="Ban" width={inner} height={inner} />
     </span>
   )
 }

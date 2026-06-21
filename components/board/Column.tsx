@@ -35,7 +35,11 @@ export function Column({ status, cards, onNewCard }: Props) {
 
   return (
     <div
-      className={`flex flex-col w-72 shrink-0 h-full transition-colors ${isOver ? 'bg-accent-soft' : ''}`}
+      className={`flex flex-col w-72 shrink-0 h-full transition-all duration-200 border-x border-transparent ${
+        isOver 
+          ? 'bg-accent-soft/20 border-accent-border/40 shadow-[0_0_12px_rgba(94,106,210,0.06)]' 
+          : ''
+      }`}
       onDragOver={e => {
         if (!e.dataTransfer.types.includes('text/ban-card-id')) return
         e.preventDefault()
@@ -75,8 +79,8 @@ export function Column({ status, cards, onNewCard }: Props) {
         </AnimatePresence>
 
         {cards.length === 0 && (
-          <div className="flex items-center justify-center h-16 border border-dashed border-border-subtle rounded-lg">
-            <span className="text-xs text-text-muted">{t('board.empty')}</span>
+          <div className="flex items-center justify-center h-16 border border-dashed border-border-subtle/50 rounded-lg bg-surface-2/10 transition-colors">
+            <span className="text-xs text-text-muted/80">{t('board.empty')}</span>
           </div>
         )}
       </div>
