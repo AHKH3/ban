@@ -1,4 +1,5 @@
 import type { BoardData, Card, Project, SearchResult, NewCardInput } from './types'
+import type { ShortcutBinding } from './shortcuts'
 
 export interface ElectronAPI {
   // Project
@@ -20,9 +21,11 @@ export interface ElectronAPI {
   submitCapture(raw: string, projectPath: string): Promise<Card>
   closeCaptureWindow(): Promise<void>
   getDefaultProjectPath(): Promise<string | null>
+  signalCaptureReady(): void
 
   // Window chrome (theme sync)
   setWindowChrome(chrome: { bg: string; symbol: string }): Promise<void>
+  setCaptureShortcut(shortcut: ShortcutBinding): Promise<boolean>
 
   // Events: Main → Renderer
   onBoardChanged(callback: (data: { projectPath: string }) => void): () => void

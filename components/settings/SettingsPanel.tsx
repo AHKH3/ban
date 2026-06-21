@@ -1,16 +1,26 @@
 'use client'
 
 import { useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { StatusIcon } from '@/components/card/StatusIcon'
 import { useSettingsStore, THEMES } from '@/lib/store/settings'
 import type { ThemeId } from '@/lib/store/settings'
 import { useT, LANGUAGES } from '@/lib/i18n'
 import { CARD_TYPE_LABELS } from '@/lib/types'
 import type { CardType } from '@/lib/types'
+import { formatShortcut, shortcutFromEvent } from '@/lib/shortcuts'
+import type { ShortcutAction } from '@/lib/shortcuts'
 
 const TYPE_KEY: Record<CardType, string> = {
   task: 'type.task', idea: 'type.idea', bug: 'type.bug', problem: 'type.problem',
   decision: 'type.decision', question: 'type.question', note: 'type.note',
+}
+
+const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
+  capture: 'shortcut.capture',
+  palette: 'shortcut.palette',
+  newCard: 'shortcut.newCard',
+  save: 'shortcut.save',
 }
 
 // Tiny preview swatch for each theme using its real CSS vars.
@@ -33,16 +43,26 @@ function ThemeSwatch({ id }: { id: ThemeId }) {
 
 export function SettingsPanel() {
   const t = useT()
-  const { theme, lang, defaultType, setTheme, setLang, setDefaultType } = useSettingsStore()
+  const { theme, lang, defaultType, shortcuts, setTheme, setLang, setDefaultType, setShortcut, resetShortcuts } = useSettingsStore()
   const sections = ['settings.appearance', 'settings.language', 'settings.general', 'settings.shortcuts', 'settings.about']
   const [active, setActive] = useState(0)
+  const [recording, setRecording] = useState<ShortcutAction | null>(null)
 
-  const shortcuts: [string, string][] = [
-    ['shortcut.capture', 'Ctrl + Shift + Space'],
-    ['shortcut.palette', 'Ctrl + K'],
-    ['shortcut.newCard', 'N'],
-    ['shortcut.save', 'Ctrl + S'],
-  ]
+  const shortcutActions: ShortcutAction[] = ['capture', 'palette', 'newCard', 'save']
+
+  const handleShortcutKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, action: ShortcutAction) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.code === 'Escape') {
+      setRecording(null)
+      return
+    }
+
+    const next = shortcutFromEvent(event.nativeEvent)
+    if (!next) return
+    setShortcut(action, next)
+    setRecording(null)
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -131,12 +151,35 @@ export function SettingsPanel() {
         {/* Shortcuts */}
         {active === 3 && (
           <section className="max-w-md">
-            <h2 className="text-base font-semibold text-text-primary mb-4">{t('settings.shortcuts')}</h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-text-primary">{t('settings.shortcuts')}</h2>
+                <p className="mt-1 text-xs text-text-muted">{t('settings.shortcutsHint')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { resetShortcuts(); setRecording(null) }}
+                className="shrink-0 rounded border border-border-subtle px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-2 hover:text-text-primary transition-colors"
+              >
+                {t('settings.resetShortcuts')}
+              </button>
+            </div>
             <div className="space-y-0">
-              {shortcuts.map(([action, sc]) => (
-                <div key={action} className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-                  <span className="text-sm text-text-secondary">{t(action)}</span>
-                  <kbd className="text-xs bg-surface-3 border border-border-strong rounded px-2 py-0.5 text-text-muted font-mono">{sc}</kbd>
+              {shortcutActions.map(action => (
+                <div key={action} className="flex items-center justify-between gap-3 py-2.5 border-b border-border-subtle">
+                  <span className="text-sm text-text-secondary">{t(SHORTCUT_LABELS[action])}</span>
+                  <button
+                    type="button"
+                    onClick={() => setRecording(action)}
+                    onKeyDown={event => recording === action && handleShortcutKeyDown(event, action)}
+                    className={`min-w-32 rounded border px-2 py-1 text-center text-xs font-mono transition-colors ${
+                      recording === action
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : 'border-border-strong bg-surface-3 text-text-muted hover:text-text-secondary'
+                    }`}
+                  >
+                    {recording === action ? t('settings.pressShortcut') : formatShortcut(shortcuts[action])}
+                  </button>
                 </div>
               ))}
             </div>

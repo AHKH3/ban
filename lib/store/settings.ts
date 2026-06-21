@@ -2,6 +2,8 @@
 
 import { create } from 'zustand'
 import type { CardType } from '@/lib/types'
+import { DEFAULT_SHORTCUTS } from '@/lib/shortcuts'
+import type { ShortcutAction, ShortcutBinding, ShortcutMap } from '@/lib/shortcuts'
 
 export type ThemeId = 'dark-soft' | 'dark-oled' | 'light-white' | 'light-paper'
 export type Lang = 'en' | 'ar'
@@ -17,6 +19,7 @@ interface PersistedSettings {
   theme: ThemeId
   lang: Lang
   defaultType: CardType
+  shortcuts: ShortcutMap
 }
 
 const STORAGE_KEY = 'ban-settings'
@@ -24,6 +27,12 @@ const DEFAULTS: PersistedSettings = {
   theme: 'dark-soft',
   lang: 'en',
   defaultType: 'task',
+  shortcuts: DEFAULT_SHORTCUTS,
+}
+
+function normalizeShortcuts(value: unknown): ShortcutMap {
+  if (!value || typeof value !== 'object') return DEFAULT_SHORTCUTS
+  return { ...DEFAULT_SHORTCUTS, ...(value as Partial<ShortcutMap>) }
 }
 
 function readPersisted(): PersistedSettings {
@@ -31,7 +40,8 @@ function readPersisted(): PersistedSettings {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULTS
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<PersistedSettings>) }
+    const parsed = JSON.parse(raw) as Partial<PersistedSettings>
+    return { ...DEFAULTS, ...parsed, shortcuts: normalizeShortcuts(parsed.shortcuts) }
   } catch {
     return DEFAULTS
   }
@@ -61,6 +71,8 @@ interface SettingsStore extends PersistedSettings {
   setTheme(theme: ThemeId): void
   setLang(lang: Lang): void
   setDefaultType(type: CardType): void
+  setShortcut(action: ShortcutAction, shortcut: ShortcutBinding): void
+  resetShortcuts(): void
 }
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
@@ -71,25 +83,44 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     const persisted = readPersisted()
     applyToDocument(persisted)
     set({ ...persisted, hydrated: true })
+    window.electronAPI?.setCaptureShortcut?.(persisted.shortcuts.capture).catch(() => undefined)
   },
 
   setTheme: (theme) => {
     set({ theme })
-    const { lang, defaultType } = get()
+    const { lang, defaultType, shortcuts } = get()
     applyToDocument({ theme, lang })
-    persist({ theme, lang, defaultType })
+    persist({ theme, lang, defaultType, shortcuts })
   },
 
   setLang: (lang) => {
     set({ lang })
-    const { theme, defaultType } = get()
+    const { theme, defaultType, shortcuts } = get()
     applyToDocument({ theme, lang })
-    persist({ theme, lang, defaultType })
+    persist({ theme, lang, defaultType, shortcuts })
   },
 
   setDefaultType: (defaultType) => {
     set({ defaultType })
-    const { theme, lang } = get()
-    persist({ theme, lang, defaultType })
+    const { theme, lang, shortcuts } = get()
+    persist({ theme, lang, defaultType, shortcuts })
+  },
+
+  setShortcut: (action, shortcut) => {
+    const shortcuts = { ...get().shortcuts, [action]: shortcut }
+    set({ shortcuts })
+    const { theme, lang, defaultType } = get()
+    persist({ theme, lang, defaultType, shortcuts })
+    if (action === 'capture') {
+      window.electronAPI?.setCaptureShortcut?.(shortcut).catch(() => undefined)
+    }
+  },
+
+  resetShortcuts: () => {
+    const shortcuts = DEFAULT_SHORTCUTS
+    set({ shortcuts })
+    const { theme, lang, defaultType } = get()
+    persist({ theme, lang, defaultType, shortcuts })
+    window.electronAPI?.setCaptureShortcut?.(shortcuts.capture).catch(() => undefined)
   },
 }))

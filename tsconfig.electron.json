@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "sourceMap": true
   },
-  "include": ["electron/**/*.ts", "lib/types.ts"],
+  "include": ["electron/**/*.ts", "lib/types.ts", "lib/shortcuts.ts"],
   "exclude": ["node_modules"]
 }

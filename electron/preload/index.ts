@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Window chrome (theme sync)
   setWindowChrome: (chrome: { bg: string; symbol: string }) => ipcRenderer.invoke('window:set-chrome', chrome),
+  setCaptureShortcut: (shortcut: Record<string, unknown>) => ipcRenderer.invoke('shortcuts:set-capture', shortcut),
 
   // Events: main → renderer
   onBoardChanged: (callback: (data: { projectPath: string }) => void) => {

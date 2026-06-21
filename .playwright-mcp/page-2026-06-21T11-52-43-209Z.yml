@@ -1,0 +1,5 @@
+- generic [ref=e3]:
+  - img [ref=e4]
+  - 'textbox "Capture idea… @status #tag" [ref=e7]'
+  - button [disabled] [ref=e8]:
+    - img [ref=e9]

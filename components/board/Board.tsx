@@ -7,20 +7,22 @@ import { Column } from './Column'
 import { CardDetail } from '@/components/card/CardDetail'
 import { NewCardModal } from '@/components/card/NewCardModal'
 import { useBoardStore } from '@/lib/store/board'
+import { useSettingsStore } from '@/lib/store/settings'
 import { useT } from '@/lib/i18n'
+import { matchesShortcut } from '@/lib/shortcuts'
 import { ALL_STATUSES } from '@/lib/types'
 import type { CardStatus } from '@/lib/types'
 
 export function Board() {
   const { board, selectedCard, selectCard } = useBoardStore()
   const t = useT()
+  const newCardShortcut = useSettingsStore(s => s.shortcuts.newCard)
   const [newCardStatus, setNewCardStatus] = useState<CardStatus | null>(null)
 
-  // "N" opens the new-card modal (ignored while typing or when a card/modal is open).
+  // The physical key opens the new-card modal even when the keyboard layout changes.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== 'n' && e.key !== 'N') return
-      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (!matchesShortcut(e, newCardShortcut)) return
       const el = document.activeElement as HTMLElement | null
       const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
       if (typing || selectedCard || newCardStatus) return
@@ -29,7 +31,7 @@ export function Board() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedCard, newCardStatus])
+  }, [selectedCard, newCardStatus, newCardShortcut])
 
   if (!board) return null
 

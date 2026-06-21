@@ -1,4 +1,4 @@
-import { BrowserWindow, app } from 'electron'
+import { BrowserWindow, app, ipcMain } from 'electron'
 import * as path from 'path'
 
 const RENDERER_URL = 'http://localhost:3000'
@@ -48,8 +48,8 @@ export function createMainWindow(isDev: boolean): BrowserWindow {
 
 export function createCaptureWindow(isDev: boolean): BrowserWindow {
   const win = new BrowserWindow({
-    width: 620,
-    height: 88,
+    width: 640,
+    height: 120,
     resizable: false,
     frame: false,
     alwaysOnTop: true,
@@ -70,9 +70,32 @@ export function createCaptureWindow(isDev: boolean): BrowserWindow {
     win.loadFile(path.join(RENDERER_OUT, 'capture', 'index.html'))
   }
 
-  win.once('ready-to-show', () => win.show())
+  // Reveal only after the renderer signals it has hydrated — applied the persisted
+  // theme/RTL and painted with styles. Showing on 'ready-to-show' catches the first,
+  // pre-hydration frame (unstyled + default 'en' layout), which is the FOUC the
+  // capture bar used to flash. A timeout guards against a signal that never arrives.
+  let revealed = false
+  const fallback = setTimeout(() => reveal(), 2000)
+  function reveal() {
+    if (revealed) return
+    revealed = true
+    clearTimeout(fallback)
+    if (!win.isDestroyed()) {
+      win.show()
+      win.focus()
+    }
+  }
+  const onReady = (e: Electron.IpcMainEvent) => {
+    if (e.sender === win.webContents) reveal()
+  }
+  ipcMain.on('capture:ready', onReady)
+
   win.on('blur', () => {
     if (!win.isDestroyed()) win.hide()
+  })
+  win.on('closed', () => {
+    clearTimeout(fallback)
+    ipcMain.removeListener('capture:ready', onReady)
   })
 
   return win

@@ -6,7 +6,9 @@ import { MarkdownEditor } from './MarkdownEditor'
 import { CardTypeIcon } from './CardTypeIcon'
 import { StatusButton } from './StatusButton'
 import { useBoardStore } from '@/lib/store/board'
+import { useSettingsStore } from '@/lib/store/settings'
 import { useT } from '@/lib/i18n'
+import { matchesShortcut } from '@/lib/shortcuts'
 import type { Card, CardStatus, CardType, CardPriority } from '@/lib/types'
 import {
   CARD_TYPE_LABELS, PRIORITY_LABELS,
@@ -28,6 +30,7 @@ interface Props {
 export function CardDetail({ card, onClose }: Props) {
   const { updateCard, deleteCard } = useBoardStore()
   const t = useT()
+  const saveShortcut = useSettingsStore(s => s.shortcuts.save)
   const [title, setTitle] = useState(card.title)
   const [body, setBody] = useState(card.body)
   const [type, setType] = useState<CardType>(card.type)
@@ -79,7 +82,7 @@ export function CardDetail({ card, onClose }: Props) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if (matchesShortcut(e, saveShortcut)) {
         e.preventDefault()
         if (isDirty) handleSave()
       }

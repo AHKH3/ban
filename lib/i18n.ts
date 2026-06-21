@@ -91,6 +91,9 @@ const en: Dict = {
   'settings.themeDarkOled': 'OLED Black',
   'settings.themeLightWhite': 'Clean White',
   'settings.themeLightPaper': 'Warm Paper',
+  'settings.shortcutsHint': 'Shortcuts use physical keys, so they keep working across keyboard languages.',
+  'settings.pressShortcut': 'Press keys',
+  'settings.resetShortcuts': 'Reset',
 
   // Shortcuts
   'shortcut.capture': 'Quick Capture',
@@ -100,6 +103,9 @@ const en: Dict = {
 
   // Capture
   'capture.placeholder': 'Capture idea… @status #tag',
+  'capture.save': 'Save',
+  'capture.dismiss': 'Dismiss',
+  'capture.noProject': 'No project',
 }
 
 const ar: Dict = {
@@ -174,6 +180,9 @@ const ar: Dict = {
   'settings.themeDarkOled': 'أسود أوليد',
   'settings.themeLightWhite': 'أبيض نقي',
   'settings.themeLightPaper': 'ورقي دافئ',
+  'settings.shortcutsHint': 'الاختصارات تستخدم المفاتيح الفعلية، لذلك تعمل مع تغيير لغة الكيبورد.',
+  'settings.pressShortcut': 'اضغط المفاتيح',
+  'settings.resetShortcuts': 'استعادة',
 
   'shortcut.capture': 'الالتقاط السريع',
   'shortcut.palette': 'لوحة الأوامر',
@@ -181,6 +190,9 @@ const ar: Dict = {
   'shortcut.save': 'حفظ البطاقة',
 
   'capture.placeholder': 'التقط فكرة… status@ tag#',
+  'capture.save': 'حفظ',
+  'capture.dismiss': 'إغلاق',
+  'capture.noProject': 'لا يوجد مشروع',
 }
 
 const DICTS: Record<Lang, Dict> = { en, ar }

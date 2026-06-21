@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { SearchIcon } from '@/components/ui/icons'
 import { useUIStore } from '@/lib/store/ui'
 import { useBoardStore } from '@/lib/store/board'
+import { useSettingsStore } from '@/lib/store/settings'
 import { useT } from '@/lib/i18n'
+import { formatShortcut } from '@/lib/shortcuts'
 import { motion } from 'framer-motion'
 
 type WindowControlsSide = 'left' | 'right'
@@ -63,6 +65,7 @@ function useWindowControlsSide(): WindowControlsSide {
 export function Titlebar() {
   const { openCommandPalette, sidebarCollapsed, toggleSidebar } = useUIStore()
   const { project } = useBoardStore()
+  const paletteShortcut = useSettingsStore(s => s.shortcuts.palette)
   const t = useT()
   const controlsOnLeft = useWindowControlsSide() === 'left'
 
@@ -121,7 +124,7 @@ export function Titlebar() {
             <SearchIcon size={13} className="shrink-0" />
             <span className="truncate">{t('search.placeholder')}</span>
           </div>
-          <kbd className="text-[10px] bg-surface-3 border border-border-subtle rounded px-1 shrink-0 group-hover/search:bg-surface-2 transition-colors">Ctrl+K</kbd>
+          <kbd className="text-[10px] bg-surface-3 border border-border-subtle rounded px-1 shrink-0 group-hover/search:bg-surface-2 transition-colors">{formatShortcut(paletteShortcut)}</kbd>
         </button>
       </div>
 

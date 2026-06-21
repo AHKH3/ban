@@ -7,11 +7,14 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { ProjectPicker } from '@/components/projects/ProjectPicker'
 import { Board } from '@/components/board/Board'
 import { CommandPalette } from '@/components/search/CommandPalette'
+import { matchesShortcut } from '@/lib/shortcuts'
+import { useSettingsStore } from '@/lib/store/settings'
 import '@/lib/ipc'
 
 export default function Home() {
   const { board, project, openProject, refreshBoard } = useBoardStore()
   const { commandPaletteOpen } = useUIStore()
+  const paletteShortcut = useSettingsStore(s => s.shortcuts.palette)
 
   // Auto-open last project
   useEffect(() => {
@@ -31,14 +34,14 @@ export default function Home() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (matchesShortcut(e, paletteShortcut)) {
         e.preventDefault()
         useUIStore.getState().openCommandPalette()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [paletteShortcut])
 
   if (!project) {
     return (
