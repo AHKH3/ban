@@ -65,11 +65,9 @@ export function CaptureInput() {
     <form
       onSubmit={handleSubmit}
       className="titlebar-drag flex flex-1 flex-col justify-center gap-2.5 px-4 py-3.5"
-      // Inline so the bar is correctly laid out even before the stylesheet loads.
-      style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
     >
       {/* Input row */}
-      <div className="titlebar-nodrag flex items-center gap-3">
+      <div id="capture-row" className="titlebar-nodrag flex items-center gap-3">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-accent-border bg-accent-soft">
           <CaptureIcon size={16} color="var(--accent)" />
         </span>
@@ -113,7 +111,7 @@ export function CaptureInput() {
       </div>
 
       {/* Footer: target project + keyboard hints */}
-      <div className="titlebar-nodrag flex items-center justify-between gap-3 ps-11 pe-1 text-[11px] text-text-muted">
+      <div id="capture-foot" className="titlebar-nodrag flex items-center justify-between gap-3 ps-11 pe-1 text-[11px] text-text-muted">
         <span className="flex min-w-0 items-center gap-1.5">
           <FolderIcon size={12} />
           <span className="truncate">{projectName ?? t('capture.noProject')}</span>

@@ -1,0 +1,18 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e6]
+      - 'textbox "Capture idea… @status #tag" [ref=e9]'
+      - button [disabled] [ref=e10]:
+        - img [ref=e11]
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - img [ref=e14]
+        - generic [ref=e16]: No project
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]: ↵
+          - text: Save
+        - generic [ref=e20]:
+          - generic [ref=e21]: esc
+          - text: Dismiss

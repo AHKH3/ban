@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AddIcon } from '@/components/ui/icons'
 import { Column } from './Column'
@@ -10,6 +10,7 @@ import { useBoardStore } from '@/lib/store/board'
 import { useSettingsStore } from '@/lib/store/settings'
 import { useT } from '@/lib/i18n'
 import { matchesShortcut } from '@/lib/shortcuts'
+import { shouldStartBoardPan } from '@/lib/board-pan'
 import { ALL_STATUSES } from '@/lib/types'
 import type { CardStatus } from '@/lib/types'
 
@@ -18,6 +19,9 @@ export function Board() {
   const t = useT()
   const newCardShortcut = useSettingsStore(s => s.shortcuts.newCard)
   const [newCardStatus, setNewCardStatus] = useState<CardStatus | null>(null)
+  const [isPanning, setIsPanning] = useState(false)
+  const panRef = useRef<{ pointerId: number; x: number } | null>(null)
+  const boardScrollRef = useRef<HTMLDivElement>(null)
 
   // The physical key opens the new-card modal even when the keyboard layout changes.
   useEffect(() => {
@@ -37,7 +41,41 @@ export function Board() {
 
   return (
     <div className="relative flex h-full overflow-hidden">
-      <div className="flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-bg pb-0">
+      <div
+        ref={boardScrollRef}
+        className={`flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-bg pb-0 ${
+          isPanning ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        onPointerDown={e => {
+          if (e.pointerType !== 'mouse' || !shouldStartBoardPan(e)) return
+          panRef.current = { pointerId: e.pointerId, x: e.clientX }
+          setIsPanning(true)
+          e.currentTarget.setPointerCapture(e.pointerId)
+          e.preventDefault()
+        }}
+        onPointerMove={e => {
+          const pan = panRef.current
+          if (!pan || pan.pointerId !== e.pointerId) return
+          const scrollEl = boardScrollRef.current
+          if (!scrollEl) return
+
+          scrollEl.scrollLeft -= e.clientX - pan.x
+          pan.x = e.clientX
+        }}
+        onPointerUp={e => {
+          const pan = panRef.current
+          if (!pan || pan.pointerId !== e.pointerId) return
+          panRef.current = null
+          setIsPanning(false)
+          e.currentTarget.releasePointerCapture(e.pointerId)
+        }}
+        onPointerCancel={e => {
+          const pan = panRef.current
+          if (!pan || pan.pointerId !== e.pointerId) return
+          panRef.current = null
+          setIsPanning(false)
+        }}
+      >
         {ALL_STATUSES.map(status => (
           <div key={status} className="group h-full border-e border-border-subtle last:border-e-0 bg-surface-1">
             <Column

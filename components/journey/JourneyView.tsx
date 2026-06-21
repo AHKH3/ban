@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
+import { HugeiconsIcon } from '@hugeicons/react'
+import {
+  ActivitySparkIcon,
+  CalendarRangeIcon,
+  PauseIcon,
+  PlayIcon,
+} from '@hugeicons/core-free-icons'
 import { CardTypeIcon } from '@/components/card/CardTypeIcon'
 import { StatusIcon } from '@/components/card/StatusIcon'
 import { useBoardStore } from '@/lib/store/board'
@@ -14,7 +21,6 @@ import type {
   ActivityEvent,
   ActivityRange,
   CardStatus,
-  JourneyReplayMode,
 } from '@/lib/types'
 
 type RangePreset = 'today' | 'week' | 'month' | 'custom' | 'all'
@@ -29,14 +35,18 @@ const STATUS_KEY: Record<CardStatus, string> = {
   killed: 'column.killed',
 }
 
-const SPEEDS = [0.5, 1, 2, 4]
+const PLAYBACK_INTERVAL_MS = 780
+const CARD_LAYOUT_TRANSITION = {
+  layout: { type: 'spring', stiffness: 430, damping: 34, mass: 0.75 },
+  opacity: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+  scale: { duration: 0.24, ease: [0.16, 1, 0.3, 1] },
+  rotate: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+}
 
 export function JourneyView() {
   const { project } = useBoardStore()
   const t = useT()
   const [preset, setPreset] = useState<RangePreset>('week')
-  const [mode, setMode] = useState<JourneyReplayMode>('range-state')
-  const [speed, setSpeed] = useState(1)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playhead, setPlayhead] = useState(0)
   const [baselineEvents, setBaselineEvents] = useState<ActivityEvent[]>([])
@@ -92,14 +102,14 @@ export function JourneyView() {
 
     const timer = window.setTimeout(() => {
       setPlayhead(value => Math.min(value + 1, rangeEvents.length))
-    }, 850 / speed)
+    }, PLAYBACK_INTERVAL_MS)
 
     return () => window.clearTimeout(timer)
-  }, [isPlaying, playhead, rangeEvents.length, speed])
+  }, [isPlaying, playhead, rangeEvents.length])
 
   const baselineState = useMemo(() => {
-    return mode === 'range-state' ? applyEvents(new Map(), baselineEvents) : new Map<string, ActivityCardSnapshot>()
-  }, [baselineEvents, mode])
+    return applyEvents(new Map(), baselineEvents)
+  }, [baselineEvents])
 
   const visibleCards = useMemo(() => {
     return applyEvents(new Map(baselineState), rangeEvents.slice(0, playhead))
@@ -128,6 +138,7 @@ export function JourneyView() {
   }, [visibleCards])
 
   const activeEvent = playhead > 0 ? rangeEvents[playhead - 1] : null
+  const activeCardId = activeEvent?.cardId ?? null
 
   if (!project) return null
 
@@ -135,36 +146,39 @@ export function JourneyView() {
     <div className="flex h-full flex-col overflow-hidden bg-bg">
       <JourneyToolbar
         preset={preset}
-        mode={mode}
-        speed={speed}
         isPlaying={isPlaying}
         hasEvents={rangeEvents.length > 0}
         customStart={customStart}
         customEnd={customEnd}
         onPresetChange={value => setPreset(value)}
-        onModeChange={value => {
-          setMode(value)
-          setPlayhead(0)
-        }}
-        onSpeedChange={setSpeed}
         onTogglePlaying={() => setIsPlaying(value => !value)}
         onCustomStartChange={setCustomStart}
         onCustomEndChange={setCustomEnd}
       />
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-bg">
-          {ALL_STATUSES.map(status => (
-            <div key={status} className="group h-full border-e border-border-subtle last:border-e-0 bg-surface-1">
-              <JourneyColumn
-                status={status}
-                label={t(STATUS_KEY[status])}
-                cards={grouped[status]}
-                emptyLabel={t('board.empty')}
-              />
-            </div>
-          ))}
-        </div>
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-accent-soft/35 to-transparent" />
+        <LayoutGroup id="journey-board">
+          <div className="flex flex-1 gap-px overflow-x-auto overflow-y-hidden bg-bg">
+            {ALL_STATUSES.map((status, index) => (
+              <motion.div
+                key={status}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.035, duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                className="group h-full border-e border-border-subtle last:border-e-0 bg-surface-1"
+              >
+                <JourneyColumn
+                  status={status}
+                  label={t(STATUS_KEY[status])}
+                  cards={grouped[status]}
+                  activeCardId={activeCardId}
+                  emptyLabel={t('board.empty')}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </LayoutGroup>
       </div>
 
       <JourneyStrip
@@ -183,29 +197,21 @@ export function JourneyView() {
 
 function JourneyToolbar({
   preset,
-  mode,
-  speed,
   isPlaying,
   hasEvents,
   customStart,
   customEnd,
   onPresetChange,
-  onModeChange,
-  onSpeedChange,
   onTogglePlaying,
   onCustomStartChange,
   onCustomEndChange,
 }: {
   preset: RangePreset
-  mode: JourneyReplayMode
-  speed: number
   isPlaying: boolean
   hasEvents: boolean
   customStart: string
   customEnd: string
   onPresetChange: (preset: RangePreset) => void
-  onModeChange: (mode: JourneyReplayMode) => void
-  onSpeedChange: (speed: number) => void
   onTogglePlaying: () => void
   onCustomStartChange: (date: string) => void
   onCustomEndChange: (date: string) => void
@@ -213,9 +219,12 @@ function JourneyToolbar({
   const t = useT()
 
   return (
-    <header className="shrink-0 border-b border-border-subtle bg-surface-1 px-3 py-2">
+    <header className="shrink-0 border-b border-border-subtle bg-surface-1 px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex h-8 items-center px-1">
+        <div className="flex h-8 items-center gap-2 px-1">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-accent-border bg-accent-soft text-accent">
+            <HugeiconsIcon icon={ActivitySparkIcon} size={14} strokeWidth={1.6} />
+          </span>
           <span className="text-sm font-medium text-text-primary">{t('journey.title')}</span>
         </div>
 
@@ -233,34 +242,15 @@ function JourneyToolbar({
             onChange={value => onPresetChange(value as RangePreset)}
           />
 
-          <Segmented
-            label={t('journey.mode')}
-            value={mode}
-            options={[
-              ['range-state', t('journey.modeRange')],
-              ['empty', t('journey.modeEmpty')],
-            ]}
-            onChange={value => onModeChange(value as JourneyReplayMode)}
-          />
-
           <button
             onClick={onTogglePlaying}
             disabled={!hasEvents}
-            className="h-8 rounded-md border border-border-subtle bg-accent px-3 text-xs font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+            title={isPlaying ? t('journey.pause') : t('journey.play')}
+            aria-label={isPlaying ? t('journey.pause') : t('journey.play')}
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-border-subtle bg-accent text-accent-contrast transition-all hover:scale-[1.03] hover:shadow-[0_0_18px_var(--accent-soft)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {isPlaying ? t('journey.pause') : t('journey.play')}
+            <HugeiconsIcon icon={isPlaying ? PauseIcon : PlayIcon} size={15} strokeWidth={1.8} />
           </button>
-
-          <label className="flex h-8 items-center gap-1.5 rounded-md border border-border-subtle bg-surface-2 px-2 text-text-secondary">
-            <span className="text-text-muted">{t('journey.speed')}</span>
-            <select
-              value={speed}
-              onChange={event => onSpeedChange(Number(event.target.value))}
-              className="bg-transparent text-text-primary focus:outline-none"
-            >
-              {SPEEDS.map(value => <option key={value} value={value}>{value}x</option>)}
-            </select>
-          </label>
         </div>
       </div>
 
@@ -277,6 +267,7 @@ function JourneyToolbar({
 function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="flex items-center gap-2">
+      <HugeiconsIcon icon={CalendarRangeIcon} size={13} strokeWidth={1.5} className="text-text-muted" />
       {label}
       <input
         type="date"
@@ -304,14 +295,10 @@ function JourneyStrip({
   const t = useT()
 
   return (
-    <footer className="shrink-0 border-t border-border-subtle bg-surface-1 px-3 py-2">
+    <footer className="shrink-0 border-t border-border-subtle bg-surface-1 px-3 py-2.5">
       <div className="mb-2 flex items-center justify-between gap-3 text-[11px] text-text-muted">
         <span>{isLoading ? t('journey.loading') : `${events.length} ${t('journey.events')}`}</span>
-        {activeEvent && (
-          <span className="truncate text-text-secondary">
-            {t('journey.selectedEvent')}: {eventSentence(activeEvent)}
-          </span>
-        )}
+        <span className="truncate text-text-secondary">{activeEvent ? formatRelative(activeEvent.createdAt) : t('journey.recordingStarts')}</span>
       </div>
 
       <div className="flex items-center gap-3">
@@ -338,10 +325,11 @@ function JourneyStrip({
           <button
             key={event.id}
             onClick={() => onScrub(index + 1)}
-            className={`h-2.5 shrink-0 rounded-full border transition-all ${
+            aria-label={`${index + 1}`}
+            className={`h-2.5 shrink-0 rounded-full border transition-all duration-300 ${
               index < playhead
-                ? 'w-7 border-accent bg-accent'
-                : 'w-2.5 border-border-strong bg-surface-3 hover:border-accent-border'
+                ? 'w-8 border-accent bg-accent shadow-[0_0_14px_var(--accent-soft)]'
+                : 'w-2.5 border-border-strong bg-surface-3 hover:w-5 hover:border-accent-border'
             }`}
             title={eventSentence(event)}
           />
@@ -355,11 +343,13 @@ function JourneyColumn({
   status,
   label,
   cards,
+  activeCardId,
   emptyLabel,
 }: {
   status: CardStatus
   label: string
   cards: ActivityCardSnapshot[]
+  activeCardId: string | null
   emptyLabel: string
 }) {
   return (
@@ -377,7 +367,7 @@ function JourneyColumn({
       <div className="flex-1 column-scroll px-2 pb-3 space-y-2">
         <AnimatePresence initial={false}>
           {cards.map(card => (
-            <JourneyCard key={card.id} card={card} />
+            <JourneyCard key={card.id} card={card} isActive={card.id === activeCardId} />
           ))}
         </AnimatePresence>
 
@@ -405,19 +395,46 @@ const PRIORITY_KEY: Record<string, string> = {
   low: 'priority.low',
 }
 
-function JourneyCard({ card }: { card: ActivityCardSnapshot }) {
+function JourneyCard({ card, isActive }: { card: ActivityCardSnapshot; isActive: boolean }) {
   const t = useT()
 
   return (
     <motion.div
       layout
       layoutId={`journey-card-${card.id}`}
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.12 }}
-      className="group/card relative bg-surface-2 border rounded-lg p-3 cursor-default transition-all duration-200 border-border-subtle"
+      initial={{ opacity: 0, y: 18, scale: 0.96, rotate: -1.2, filter: 'blur(4px)' }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        scale: isActive ? 1.025 : 1,
+        rotate: 0,
+        filter: 'blur(0px)',
+      }}
+      exit={{ opacity: 0, scale: 0.92, y: -10, rotate: 1.4, filter: 'blur(3px)' }}
+      transition={CARD_LAYOUT_TRANSITION}
+      className={`group/card relative cursor-default overflow-hidden rounded-lg border bg-surface-2 p-3 transition-colors duration-300 ${
+        isActive
+          ? 'border-accent-border shadow-[0_14px_38px_rgba(0,0,0,0.24),0_0_0_1px_var(--accent-soft),0_0_28px_var(--accent-soft)]'
+          : 'border-border-subtle'
+      }`}
     >
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent-soft via-transparent to-transparent"
+        initial={false}
+        animate={{ opacity: isActive ? 0.95 : 0 }}
+        transition={{ duration: 0.34 }}
+      />
+      {isActive && (
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-8 bg-[radial-gradient(circle_at_30%_20%,var(--accent-soft),transparent_58%)]"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: [0, 1, 0], scale: [0.85, 1.18, 1.35] }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        />
+      )}
+
       {card.priority !== 'normal' && card.priority !== 'low' && (
         <span
           className={`absolute top-3 end-3 w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[card.priority]}`}
@@ -425,7 +442,7 @@ function JourneyCard({ card }: { card: ActivityCardSnapshot }) {
         />
       )}
 
-      <div className="flex items-start gap-2">
+      <div className="relative flex items-start gap-2">
         <div className="mt-0.5 shrink-0 rounded">
           <StatusIcon status={card.status} size={15} />
         </div>
@@ -438,7 +455,7 @@ function JourneyCard({ card }: { card: ActivityCardSnapshot }) {
       </div>
 
       {card.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2 ms-10">
+        <div className="relative flex flex-wrap gap-1 mt-2 ms-10">
           {card.tags.slice(0, 4).map(tag => {
             const c = tagColor(tag)
             return (
@@ -457,7 +474,7 @@ function JourneyCard({ card }: { card: ActivityCardSnapshot }) {
         </div>
       )}
 
-      <div className="mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover/card:opacity-100 transition-opacity">
+      <div className="relative mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover/card:opacity-100 transition-opacity">
         {formatRelative(card.updatedAt)}
       </div>
     </motion.div>
