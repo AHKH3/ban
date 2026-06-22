@@ -69,11 +69,14 @@ const CODEX: RunAdapter = {
   runArgs: () => [
     'exec',
     '--json',
-    '--sandbox', 'workspace-write',     // may write only within the workspace (repo)
-    '--ask-for-approval', 'never',       // headless: never block on a prompt
-    '--skip-git-repo-check',
+    '--sandbox', 'workspace-write',     // confined to the repo: writes only within cwd
+    '--skip-git-repo-check',             // tolerate non-git projects
     '-',                                 // read the briefing from stdin
   ],
+  // Note: `codex exec` is non-interactive by design — it never prompts for
+  // approval, so there is no `--ask-for-approval` flag here (that lives on the
+  // top-level `codex` command). The sandbox policy is what enforces "auto,
+  // confined to project".
   parseLine: parseCodexLine,
 }
 

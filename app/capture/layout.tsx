@@ -8,22 +8,25 @@ const criticalCss = `
 [data-theme='light-white']{color-scheme:light;--surface-1:#F7F8FA;--surface-2:#F0F1F4;--surface-3:#E7E9EE;--border-subtle:rgba(15,17,23,.08);--text-primary:#16181D;--text-muted:#80858F;--accent:#5E6AD2;--accent-soft:rgba(94,106,210,.12);--accent-border:rgba(94,106,210,.4);--accent-contrast:#fff}
 [data-theme='light-paper']{color-scheme:light;--surface-1:#EFEBE1;--surface-2:#E8E3D6;--surface-3:#DED8C8;--border-subtle:rgba(60,50,30,.1);--text-primary:#2A2620;--text-muted:#908871;--accent:#9A6A3C;--accent-soft:rgba(154,106,60,.14);--accent-border:rgba(154,106,60,.4);--accent-contrast:#fff}
 #capture-root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--surface-1);color:var(--text-primary)}
-#capture-root form{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:14px 16px;margin:0;-webkit-app-region:drag}
+#capture-root form{position:relative;flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:16px;margin:0;-webkit-app-region:no-drag}
+#capture-drag-handle{position:absolute;left:12px;right:12px;top:4px;height:12px;-webkit-app-region:drag}
+#capture-root button,#capture-root input{-webkit-app-region:no-drag}
 #capture-target,#capture-projects{display:flex;align-items:center;gap:8px;-webkit-app-region:no-drag}
 #capture-target{justify-content:space-between}
 #capture-target button,#capture-projects button{min-width:0;border:1px solid var(--border-subtle);border-radius:6px;background:var(--surface-2);color:var(--text-muted);font:12px/1.2 inherit}
-#capture-target button{display:flex;align-items:center;gap:8px;max-width:360px;padding:6px 10px;color:var(--text-primary)}
+#capture-target button{display:flex;align-items:center;gap:8px;max-width:280px;padding:6px 10px;color:var(--text-primary)}
+#capture-target>span{display:flex;align-items:center;gap:8px;color:var(--text-muted);font:600 11px/1.2 inherit;text-transform:uppercase;letter-spacing:.08em}
+#capture-target>span>span{display:grid;width:24px;height:24px;place-items:center;border:1px solid var(--accent-border);border-radius:6px;background:var(--accent-soft);color:var(--accent)}
 #capture-target button span,#capture-projects button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #capture-projects{overflow:hidden}
 #capture-projects button{padding:6px 10px;background:transparent}
-#capture-row{display:flex;align-items:center;gap:12px;-webkit-app-region:no-drag}
-#capture-row>span:first-child,#capture-row button{display:grid;width:32px;height:32px;min-width:32px;place-items:center;border-radius:8px}
-#capture-row>span:first-child{border:1px solid var(--accent-border);background:var(--accent-soft);color:var(--accent)}
-#capture-row input{flex:1 1 auto;min-width:0;height:32px;border:0;background:transparent;color:var(--text-primary);font:15px/1.3 inherit;outline:0}
+#capture-row{display:flex;align-items:center;gap:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-2);padding:8px;-webkit-app-region:no-drag}
+#capture-row button{display:grid;width:36px;height:36px;min-width:36px;place-items:center;border-radius:8px}
+#capture-row input{flex:1 1 auto;min-width:0;height:36px;border:0;background:transparent;color:var(--text-primary);font:15px/1.3 inherit;outline:0;padding:0 8px}
 #capture-row input::placeholder{color:var(--text-muted);opacity:1}
 #capture-row button{border:0;background:var(--accent);color:var(--accent-contrast);padding:0;cursor:pointer}
 #capture-row button:disabled{opacity:.4;cursor:default}
-#capture-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-inline-start:44px;padding-inline-end:4px;color:var(--text-muted);font-size:11px;line-height:1.2;-webkit-app-region:no-drag}
+#capture-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-inline:4px;color:var(--text-muted);font-size:11px;line-height:1.2;-webkit-app-region:no-drag}
 #capture-foot span{display:flex;align-items:center;gap:6px;min-width:0}
 #capture-foot>span:first-child span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #capture-foot>span:last-child{flex-shrink:0;gap:12px}

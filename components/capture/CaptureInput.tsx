@@ -121,13 +121,22 @@ export function CaptureInput() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="titlebar-drag flex flex-1 flex-col justify-center gap-3 px-4 py-3.5"
+      dir="ltr"
+      className="titlebar-nodrag relative flex flex-1 flex-col justify-center gap-3 px-4 py-4"
     >
-      <div id="capture-target" className="titlebar-nodrag flex items-center justify-between gap-2">
+      <div id="capture-drag-handle" className="titlebar-drag absolute inset-x-3 top-1 h-3" />
+
+      <div id="capture-target" className="titlebar-nodrag flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">
+          <span className="grid h-6 w-6 place-items-center rounded-md border border-accent-border bg-accent-soft text-accent">
+            <CaptureIcon size={13} />
+          </span>
+          {t('shortcut.capture')}
+        </span>
         <button
           type="button"
           onClick={() => setProjectPickerOpen(open => !open)}
-          className="flex min-w-0 items-center gap-2 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
+          className="titlebar-nodrag flex min-w-0 max-w-[280px] items-center gap-2 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-text-primary"
         >
           <FolderIcon size={13} />
           <span className="truncate">{projectName ?? t('capture.chooseProject')}</span>
@@ -147,7 +156,7 @@ export function CaptureInput() {
               key={project.path}
               type="button"
               onClick={() => selectProject(project.path)}
-              className={`min-w-0 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+              className={`titlebar-nodrag min-w-0 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
                 project.path === projectPath
                   ? 'border-accent-border bg-accent-soft text-accent'
                   : 'border-border-subtle bg-transparent text-text-muted hover:border-border-strong hover:text-text-primary'
@@ -159,25 +168,22 @@ export function CaptureInput() {
           <button
             type="button"
             onClick={chooseProjectFolder}
-            className="shrink-0 rounded-md border border-border-subtle bg-transparent px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
+            className="titlebar-nodrag shrink-0 rounded-md border border-border-subtle bg-transparent px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
           >
             {t('capture.openProject')}
           </button>
         </div>
       )}
 
-      <div id="capture-row" className="titlebar-nodrag flex items-center gap-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-accent-border bg-accent-soft">
-          <CaptureIcon size={16} color="var(--accent)" />
-        </span>
-
+      <div id="capture-row" className="titlebar-nodrag flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-2 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
         <input
           ref={inputRef}
           type="text"
           value={value}
           onChange={e => setValue(e.target.value)}
           placeholder={t('capture.placeholder')}
-          className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none"
+          dir="auto"
+          className="titlebar-nodrag min-w-0 flex-1 bg-transparent px-2 text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none"
           disabled={status === 'submitting'}
           autoComplete="off"
           spellCheck={false}
@@ -201,7 +207,7 @@ export function CaptureInput() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast shadow-[0_8px_22px_rgba(94,106,210,.24)] transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="titlebar-nodrag grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast shadow-[0_8px_22px_rgba(94,106,210,.24)] transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {status === 'success'
             ? <span className="text-[15px] leading-none">✓</span>
@@ -210,7 +216,7 @@ export function CaptureInput() {
       </div>
 
       {/* Footer: target project + keyboard hints */}
-      <div id="capture-foot" className="titlebar-nodrag flex items-center justify-between gap-3 ps-11 pe-1 text-[11px] text-text-muted">
+      <div id="capture-foot" className="titlebar-nodrag flex items-center justify-between gap-3 px-1 text-[11px] text-text-muted">
         <span className="min-w-0 truncate">{projectPath ?? t('capture.noProject')}</span>
         <span className="flex shrink-0 items-center gap-3">
           <span className="flex items-center gap-1.5">
