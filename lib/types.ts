@@ -151,6 +151,56 @@ export interface AgentsState {
   rulesContent: string  // current contents of the canonical rules file
 }
 
+// --- Orchestration (assign a task to a local agent that runs on the repo) ---
+
+// A locally-installed agent CLI Ban can drive. `available` is decided at runtime
+// by probing the command; only available agents can be assigned a run.
+export interface AvailableAgent {
+  id: string          // 'codex' | 'claude' | 'antigravity' | 'opencode'
+  name: string        // display name
+  available: boolean  // command found on PATH
+  version?: string    // detected CLI version, when probe-able
+}
+
+export type RunStatus = 'running' | 'completed' | 'failed' | 'cancelled'
+
+// One streamed line from an agent run. `text` is human-readable; `raw` keeps the
+// original (e.g. a JSON event) so nothing the agent emitted is ever lost.
+export interface RunLine {
+  t: string                              // ISO timestamp
+  stream: 'stdout' | 'stderr' | 'system' // 'system' = Ban's own annotations
+  text: string
+  raw?: string
+}
+
+// The persisted record of a single run — the file-based, retrievable transcript
+// that makes the conversation yours (lives in .ban/runs/, never a vendor cloud).
+export interface RunMeta {
+  id: string
+  agentId: string
+  agentName: string
+  cardId: string
+  cardTitle: string
+  status: RunStatus
+  startedAt: string
+  endedAt?: string
+  exitCode?: number
+  sessionId?: string   // the agent's own session id, when it exposes one (resume)
+  movedTo?: CardStatus // status the card was moved to on completion
+  error?: string
+}
+
+export interface RunStartInput {
+  projectPath: string
+  cardId: string
+  agentId: string
+}
+
+// main → renderer stream: either an output line or a lifecycle transition.
+export type RunMessage =
+  | { runId: string; kind: 'line'; line: RunLine }
+  | { runId: string; kind: 'status'; meta: RunMeta }
+
 export const ALL_STATUSES: CardStatus[] = [
   'inbox', 'shape', 'ready', 'doing', 'review', 'done', 'killed',
 ]

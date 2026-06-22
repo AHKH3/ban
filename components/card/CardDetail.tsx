@@ -5,6 +5,7 @@ import { CloseIcon, DeleteIcon, SaveIcon } from '@/components/ui/icons'
 import { MarkdownEditor } from './MarkdownEditor'
 import { CardTypeIcon } from './CardTypeIcon'
 import { StatusButton } from './StatusButton'
+import { RunButton } from '@/components/runs/RunButton'
 import { useBoardStore } from '@/lib/store/board'
 import { useSettingsStore } from '@/lib/store/settings'
 import { useT } from '@/lib/i18n'
@@ -110,6 +111,7 @@ export function CardDetail({ card, onClose }: Props) {
         </div>
 
         <div className="flex items-center gap-1">
+          <RunButton card={card} />
           {isDirty && (
             <button
               onClick={handleSave}

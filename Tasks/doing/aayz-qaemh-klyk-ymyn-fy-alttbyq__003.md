@@ -1,11 +1,11 @@
 ---
 id: '003'
-status: review
+status: doing
 type: task
 priority: normal
 tags: []
 createdAt: '2026-06-21T11:33:38.780Z'
-updatedAt: '2026-06-22T02:47:23.476Z'
+updatedAt: '2026-06-22T03:20:43.199Z'
 ---
 # عايز قائمة كليك يمين في التطبيق
 

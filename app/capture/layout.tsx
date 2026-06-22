@@ -8,7 +8,14 @@ const criticalCss = `
 [data-theme='light-white']{color-scheme:light;--surface-1:#F7F8FA;--surface-2:#F0F1F4;--surface-3:#E7E9EE;--border-subtle:rgba(15,17,23,.08);--text-primary:#16181D;--text-muted:#80858F;--accent:#5E6AD2;--accent-soft:rgba(94,106,210,.12);--accent-border:rgba(94,106,210,.4);--accent-contrast:#fff}
 [data-theme='light-paper']{color-scheme:light;--surface-1:#EFEBE1;--surface-2:#E8E3D6;--surface-3:#DED8C8;--border-subtle:rgba(60,50,30,.1);--text-primary:#2A2620;--text-muted:#908871;--accent:#9A6A3C;--accent-soft:rgba(154,106,60,.14);--accent-border:rgba(154,106,60,.4);--accent-contrast:#fff}
 #capture-root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--surface-1);color:var(--text-primary)}
-#capture-root form{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:14px 16px;margin:0;-webkit-app-region:drag}
+#capture-root form{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:14px 16px;margin:0;-webkit-app-region:drag}
+#capture-target,#capture-projects{display:flex;align-items:center;gap:8px;-webkit-app-region:no-drag}
+#capture-target{justify-content:space-between}
+#capture-target button,#capture-projects button{min-width:0;border:1px solid var(--border-subtle);border-radius:6px;background:var(--surface-2);color:var(--text-muted);font:12px/1.2 inherit}
+#capture-target button{display:flex;align-items:center;gap:8px;max-width:360px;padding:6px 10px;color:var(--text-primary)}
+#capture-target button span,#capture-projects button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#capture-projects{overflow:hidden}
+#capture-projects button{padding:6px 10px;background:transparent}
 #capture-row{display:flex;align-items:center;gap:12px;-webkit-app-region:no-drag}
 #capture-row>span:first-child,#capture-row button{display:grid;width:32px;height:32px;min-width:32px;place-items:center;border-radius:8px}
 #capture-row>span:first-child{border:1px solid var(--accent-border);background:var(--accent-soft);color:var(--accent)}

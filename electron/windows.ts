@@ -48,8 +48,8 @@ export function createMainWindow(isDev: boolean): BrowserWindow {
 
 export function createCaptureWindow(isDev: boolean): BrowserWindow {
   const win = new BrowserWindow({
-    width: 640,
-    height: 120,
+    width: 700,
+    height: 180,
     resizable: false,
     frame: false,
     alwaysOnTop: true,

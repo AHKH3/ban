@@ -49,6 +49,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('skills:update', projectPath, id, updates),
   deleteSkill: (projectPath: string, id: string) => ipcRenderer.invoke('skills:delete', projectPath, id),
 
+  // Orchestration (assign a card to a local agent)
+  detectAgents: () => ipcRenderer.invoke('agents:detect'),
+  startRun: (input: Record<string, unknown>) => ipcRenderer.invoke('run:start', input),
+  stopRun: (runId: string) => ipcRenderer.invoke('run:stop', runId),
+  listRuns: (projectPath: string) => ipcRenderer.invoke('run:list', projectPath),
+  getRunLines: (projectPath: string, runId: string) =>
+    ipcRenderer.invoke('run:get-lines', projectPath, runId),
+  onRunEvent: (callback: (msg: unknown) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, msg: unknown) => callback(msg)
+    ipcRenderer.on('run:event', handler)
+    return () => ipcRenderer.removeListener('run:event', handler)
+  },
+
   // Capture
   submitCapture: (raw: string, projectPath: string) => ipcRenderer.invoke('capture:submit', raw, projectPath),
   closeCaptureWindow: () => ipcRenderer.invoke('capture:close'),

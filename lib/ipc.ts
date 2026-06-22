@@ -1,4 +1,4 @@
-import type { BoardData, Card, Project, SearchResult, NewCardInput, ActivityEvent, ActivityRange, AgentsState, PlanDoc, FileEntry, FileContent, SkillDoc } from './types'
+import type { BoardData, Card, Project, SearchResult, NewCardInput, ActivityEvent, ActivityRange, AgentsState, PlanDoc, FileEntry, FileContent, SkillDoc, AvailableAgent, RunMeta, RunLine, RunMessage, RunStartInput } from './types'
 import type { ShortcutBinding } from './shortcuts'
 
 export interface ElectronAPI {
@@ -41,6 +41,14 @@ export interface ElectronAPI {
   createSkill(projectPath: string, name: string): Promise<SkillDoc>
   updateSkill(projectPath: string, id: string, updates: { name?: string; description?: string; body?: string }): Promise<SkillDoc | null>
   deleteSkill(projectPath: string, id: string): Promise<void>
+
+  // Orchestration (assign a card to a local agent)
+  detectAgents(): Promise<AvailableAgent[]>
+  startRun(input: RunStartInput): Promise<RunMeta>
+  stopRun(runId: string): Promise<void>
+  listRuns(projectPath: string): Promise<RunMeta[]>
+  getRunLines(projectPath: string, runId: string): Promise<RunLine[]>
+  onRunEvent(callback: (msg: RunMessage) => void): () => void
 
   // Capture
   submitCapture(raw: string, projectPath: string): Promise<Card>

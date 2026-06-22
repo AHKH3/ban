@@ -12,6 +12,7 @@ import { PlansView } from '@/components/plans/PlansView'
 import { FileExplorer } from '@/components/explorer/FileExplorer'
 import { SkillsManager } from '@/components/skills/SkillsManager'
 import { CommandPalette } from '@/components/search/CommandPalette'
+import { RunPanel } from '@/components/runs/RunPanel'
 import { matchesShortcut } from '@/lib/shortcuts'
 import { useSettingsStore } from '@/lib/store/settings'
 import '@/lib/ipc'
@@ -66,6 +67,7 @@ export default function Home() {
         : activeView === 'skills' ? <SkillsManager />
         : <Board />}
       {commandPaletteOpen && <CommandPalette />}
+      <RunPanel />
     </MainLayout>
   )
 }

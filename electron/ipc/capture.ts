@@ -38,7 +38,10 @@ function parseCapture(raw: string): { title: string; status: CardStatus; tags: s
   }
 }
 
-export function setupCaptureIPC(getCaptureWindow: () => BrowserWindow | null): void {
+export function setupCaptureIPC(
+  getMainWindow: () => BrowserWindow | null,
+  getCaptureWindow: () => BrowserWindow | null
+): void {
   ipcMain.handle('capture:submit', async (_event: Electron.IpcMainInvokeEvent, raw: string, projectPath: string) => {
     const parsed = parseCapture(raw)
     const card = createCard(projectPath, parsed, suppressPath)
@@ -49,6 +52,10 @@ export function setupCaptureIPC(getCaptureWindow: () => BrowserWindow | null): v
       after: cardSnapshot(card),
     })
     indexCard(card, projectPath)
+    const mainWindow = getMainWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('board:changed', { projectPath })
+    }
     return card
   })
 

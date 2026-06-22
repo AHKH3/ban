@@ -5,20 +5,28 @@ import { AddIcon, CaptureIcon, FolderIcon } from '@/components/ui/icons'
 import { parseCapture } from '@/lib/parse-capture'
 import { useT } from '@/lib/i18n'
 import { useSettingsStore } from '@/lib/store/settings'
+import type { Project } from '@/lib/types'
 
 export function CaptureInput() {
   const t = useT()
   const hydrated = useSettingsStore(s => s.hydrated)
   const [value, setValue] = useState('')
   const [projectPath, setProjectPath] = useState<string | null>(null)
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [recentProjects, setRecentProjects] = useState<Project[]>([])
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'needs-project' | 'submitting' | 'success' | 'error'>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const refreshTarget = () => {
+    const refreshTarget = async () => {
       inputRef.current?.focus()
       if (typeof window !== 'undefined' && window.electronAPI) {
-        window.electronAPI.getDefaultProjectPath().then(setProjectPath)
+        const [nextProjectPath, nextRecentProjects] = await Promise.all([
+          window.electronAPI.getDefaultProjectPath(),
+          window.electronAPI.getRecentProjects(),
+        ])
+        setProjectPath(nextProjectPath)
+        setRecentProjects(nextRecentProjects)
       }
     }
     refreshTarget()
@@ -47,13 +55,43 @@ export function CaptureInput() {
   }, [hydrated])
 
   const parsed = value.trim() ? parseCapture(value) : null
+  const selectedProject = recentProjects.find(project => project.path === projectPath)
   const projectName = projectPath
-    ? projectPath.split(/[\\/]/).filter(Boolean).pop()
+    ? selectedProject?.name ?? projectPath.split(/[\\/]/).filter(Boolean).pop()
     : null
+
+  const selectProject = async (nextProjectPath: string) => {
+    try {
+      setStatus('idle')
+      await window.electronAPI.openProject(nextProjectPath)
+      setProjectPath(nextProjectPath)
+      setProjectPickerOpen(false)
+      const nextRecentProjects = await window.electronAPI.getRecentProjects()
+      setRecentProjects(nextRecentProjects)
+      inputRef.current?.focus()
+    } catch {
+      setStatus('error')
+      inputRef.current?.focus()
+    }
+  }
+
+  const chooseProjectFolder = async () => {
+    try {
+      const nextProjectPath = await window.electronAPI.openProjectDialog()
+      if (nextProjectPath) await selectProject(nextProjectPath)
+    } catch {
+      setStatus('error')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!value.trim() || !projectPath) return
+    if (!value.trim()) return
+    if (!projectPath) {
+      setStatus('needs-project')
+      setProjectPickerOpen(true)
+      return
+    }
     setStatus('submitting')
     try {
       await window.electronAPI.submitCapture(value.trim(), projectPath)
@@ -69,14 +107,65 @@ export function CaptureInput() {
     }
   }
 
-  const canSubmit = !!value.trim() && status !== 'submitting' && !!projectPath
+  const canSubmit = !!value.trim() && status !== 'submitting'
+  const statusText = status === 'needs-project'
+    ? t('capture.pickProject')
+    : status === 'submitting'
+      ? t('capture.saving')
+      : status === 'success'
+        ? t('capture.saved')
+        : status === 'error'
+          ? t('capture.error')
+          : ''
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="titlebar-drag flex flex-1 flex-col justify-center gap-2.5 px-4 py-3.5"
+      className="titlebar-drag flex flex-1 flex-col justify-center gap-3 px-4 py-3.5"
     >
-      {/* Input row */}
+      <div id="capture-target" className="titlebar-nodrag flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setProjectPickerOpen(open => !open)}
+          className="flex min-w-0 items-center gap-2 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
+        >
+          <FolderIcon size={13} />
+          <span className="truncate">{projectName ?? t('capture.chooseProject')}</span>
+          <span className="text-[10px] text-text-muted">⌄</span>
+        </button>
+        {statusText && (
+          <span className={`shrink-0 text-[11px] ${status === 'error' || status === 'needs-project' ? 'text-danger' : 'text-text-muted'}`}>
+            {statusText}
+          </span>
+        )}
+      </div>
+
+      {projectPickerOpen && (
+        <div id="capture-projects" className="titlebar-nodrag flex items-center gap-1.5 overflow-hidden">
+          {recentProjects.slice(0, 3).map(project => (
+            <button
+              key={project.path}
+              type="button"
+              onClick={() => selectProject(project.path)}
+              className={`min-w-0 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+                project.path === projectPath
+                  ? 'border-accent-border bg-accent-soft text-accent'
+                  : 'border-border-subtle bg-transparent text-text-muted hover:border-border-strong hover:text-text-primary'
+              }`}
+            >
+              <span className="block max-w-[130px] truncate">{project.name}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={chooseProjectFolder}
+            className="shrink-0 rounded-md border border-border-subtle bg-transparent px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
+          >
+            {t('capture.openProject')}
+          </button>
+        </div>
+      )}
+
       <div id="capture-row" className="titlebar-nodrag flex items-center gap-3">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-accent-border bg-accent-soft">
           <CaptureIcon size={16} color="var(--accent)" />
@@ -112,7 +201,7 @@ export function CaptureInput() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast shadow-[0_8px_22px_rgba(94,106,210,.24)] transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {status === 'success'
             ? <span className="text-[15px] leading-none">✓</span>
@@ -122,10 +211,7 @@ export function CaptureInput() {
 
       {/* Footer: target project + keyboard hints */}
       <div id="capture-foot" className="titlebar-nodrag flex items-center justify-between gap-3 ps-11 pe-1 text-[11px] text-text-muted">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <FolderIcon size={12} />
-          <span className="truncate">{projectName ?? t('capture.noProject')}</span>
-        </span>
+        <span className="min-w-0 truncate">{projectPath ?? t('capture.noProject')}</span>
         <span className="flex shrink-0 items-center gap-3">
           <span className="flex items-center gap-1.5">
             <kbd className="rounded border border-border-subtle px-1.5 py-0.5 text-[10px] leading-none">↵</kbd>

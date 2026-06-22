@@ -9,6 +9,7 @@ import { setupAgentsIPC } from './agents'
 import { setupPlansIPC } from './plans'
 import { setupFilesIPC } from './files'
 import { setupSkillsIPC } from './skills'
+import { setupOrchestrationIPC } from './orchestration'
 
 export function setupIPC(
   getMainWindow: () => BrowserWindow | null,
@@ -17,11 +18,12 @@ export function setupIPC(
   setupProjectIPC(getMainWindow)
   setupCardsIPC()
   setupSearchIPC()
-  setupCaptureIPC(getCaptureWindow)
+  setupCaptureIPC(getMainWindow, getCaptureWindow)
   setupWindowIPC(getMainWindow)
   setupActivityIPC()
   setupAgentsIPC()
   setupPlansIPC()
   setupFilesIPC()
   setupSkillsIPC()
+  setupOrchestrationIPC(getMainWindow)
 }

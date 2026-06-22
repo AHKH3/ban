@@ -49,6 +49,20 @@ const en: Dict = {
   'agents.loading': 'Loading agents…',
   'agents.noneSelected': 'No agents selected yet — pick at least one above to project these rules.',
 
+  // Orchestration (run a card on a local agent)
+  'run.run': 'Run',
+  'run.assign': 'Assign to a local agent',
+  'run.assignTo': 'Assign to',
+  'run.noAgents': 'No local agents detected',
+  'run.running': 'Running…',
+  'run.stop': 'Stop',
+  'run.viewLive': 'View live output',
+  'run.waiting': 'Waiting for the agent to start…',
+  'run.status.running': 'running',
+  'run.status.completed': 'completed',
+  'run.status.failed': 'failed',
+  'run.status.cancelled': 'cancelled',
+
   // Plans
   'plans.title': 'Plans',
   'plans.new': 'New plan',
@@ -185,6 +199,12 @@ const en: Dict = {
   'capture.save': 'Save',
   'capture.dismiss': 'Dismiss',
   'capture.noProject': 'No project',
+  'capture.chooseProject': 'Choose project',
+  'capture.openProject': 'Open folder…',
+  'capture.pickProject': 'Choose a project first',
+  'capture.saving': 'Saving…',
+  'capture.saved': 'Saved',
+  'capture.error': 'Could not save',
 }
 
 const ar: Dict = {
@@ -222,6 +242,20 @@ const ar: Dict = {
   'agents.saving': 'جارٍ الحفظ…',
   'agents.loading': 'جارٍ تحميل الوكلاء…',
   'agents.noneSelected': 'مفيش وكلاء مختارين لسه — اختر واحد على الأقل فوق عشان تسقط القواعد دي.',
+
+  // Orchestration (تشغيل كارت على وكيل محلي)
+  'run.run': 'تشغيل',
+  'run.assign': 'عيّن لوكيل محلي',
+  'run.assignTo': 'عيّن لـ',
+  'run.noAgents': 'مفيش وكلاء محليين متاحين',
+  'run.running': 'شغّال…',
+  'run.stop': 'إيقاف',
+  'run.viewLive': 'عرض الخرج الحيّ',
+  'run.waiting': 'في انتظار بدء الوكيل…',
+  'run.status.running': 'شغّال',
+  'run.status.completed': 'اكتمل',
+  'run.status.failed': 'فشل',
+  'run.status.cancelled': 'أُلغي',
 
   // Plans
   'plans.title': 'الخطط',
@@ -350,6 +384,12 @@ const ar: Dict = {
   'capture.save': 'حفظ',
   'capture.dismiss': 'إغلاق',
   'capture.noProject': 'لا يوجد مشروع',
+  'capture.chooseProject': 'اختر مشروعًا',
+  'capture.openProject': 'فتح مجلد…',
+  'capture.pickProject': 'اختر مشروعًا أولًا',
+  'capture.saving': 'جارٍ الحفظ…',
+  'capture.saved': 'تم الحفظ',
+  'capture.error': 'تعذر الحفظ',
 }
 
 const DICTS: Record<Lang, Dict> = { en, ar }
