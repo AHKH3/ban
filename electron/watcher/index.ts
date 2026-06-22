@@ -1,6 +1,8 @@
-import * as path from 'path'
 import { BrowserWindow } from 'electron'
 import type { FSWatcher } from 'chokidar'
+import { tasksDir } from '../fs/paths'
+import { readCardFile } from '../fs/cards'
+import { appendActivityEvent, cardSnapshot } from '../fs/activity'
 
 let watcher: FSWatcher | null = null
 const suppressedPaths = new Set<string>()
@@ -15,7 +17,7 @@ export function watchProject(projectPath: string, mainWindow: BrowserWindow): vo
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const chokidar = require('chokidar')
-  const columnsPath = path.join(projectPath, '.kanban', 'columns')
+  const columnsPath = tasksDir(projectPath)
 
   const w = chokidar.watch(columnsPath, {
     ignored: /(^|[/\\])\../,
@@ -36,8 +38,26 @@ export function watchProject(projectPath: string, mainWindow: BrowserWindow): vo
     }, 150)
   }
 
-  w.on('add', (fp: string) => { if (!suppressedPaths.has(fp)) notify() })
-    .on('change', (fp: string) => { if (!suppressedPaths.has(fp)) notify() })
+  // An unsuppressed event means something other than Ban itself touched the
+  // board — an agent or editor changing task files directly. Record it as an
+  // attributed activity event so the Journey becomes a cross-agent flight recorder.
+  const recordExternal = (fp: string): void => {
+    if (!fp.endsWith('.md')) return
+    try {
+      const card = readCardFile(fp)
+      appendActivityEvent(projectPath, {
+        kind: 'card.updated',
+        actor: 'external',
+        source: 'external',
+        cardId: card.id,
+        cardTitle: card.title,
+        after: cardSnapshot(card),
+      })
+    } catch { /* unreadable/partial write — skip */ }
+  }
+
+  w.on('add', (fp: string) => { if (!suppressedPaths.has(fp)) { recordExternal(fp); notify() } })
+    .on('change', (fp: string) => { if (!suppressedPaths.has(fp)) { recordExternal(fp); notify() } })
     .on('unlink', () => notify())
 }
 

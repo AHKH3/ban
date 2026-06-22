@@ -2,6 +2,7 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Store = require('electron-store')
 import type { Project } from '../../lib/types'
+import { selectDefaultProjectPath } from '../../lib/capture-project'
 import { readBoard, initProject, isKanbanProject } from '../fs/project'
 import { indexProject } from '../db'
 import { watchProject } from '../watcher'
@@ -54,6 +55,7 @@ export function setupProjectIPC(getMainWindow: () => BrowserWindow | null): void
   })
 
   ipcMain.handle('project:get-last', async () => {
-    return store.get('lastProject', null) as string | null
+    const recent = store.get('recentProjects', []) as Project[]
+    return selectDefaultProjectPath(store.get('lastProject', null) as string | null, recent)
   })
 }

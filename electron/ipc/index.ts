@@ -5,6 +5,10 @@ import { setupSearchIPC } from './search'
 import { setupCaptureIPC } from './capture'
 import { setupWindowIPC } from './window'
 import { setupActivityIPC } from './activity'
+import { setupAgentsIPC } from './agents'
+import { setupPlansIPC } from './plans'
+import { setupFilesIPC } from './files'
+import { setupSkillsIPC } from './skills'
 
 export function setupIPC(
   getMainWindow: () => BrowserWindow | null,
@@ -16,4 +20,8 @@ export function setupIPC(
   setupCaptureIPC(getCaptureWindow)
   setupWindowIPC(getMainWindow)
   setupActivityIPC()
+  setupAgentsIPC()
+  setupPlansIPC()
+  setupFilesIPC()
+  setupSkillsIPC()
 }

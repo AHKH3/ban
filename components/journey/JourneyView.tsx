@@ -423,7 +423,15 @@ function JourneyStrip({
     <footer className="shrink-0 border-t border-border-subtle bg-surface-1 px-3 py-2.5">
       <div className="mb-2 flex items-center justify-between gap-3 text-[11px] text-text-muted">
         <span>{isLoading ? t('journey.loading') : `${events.length} ${t('journey.events')}`}</span>
-        <span className="truncate text-text-secondary">{activeEvent ? formatRelative(activeEvent.createdAt) : t('journey.recordingStarts')}</span>
+        <span className="truncate text-text-secondary">
+          {activeEvent
+            ? <>
+                <span className={activeEvent.actor === 'ban' ? 'text-text-muted' : 'text-warning'}>{actorLabel(t, activeEvent.actor)}</span>
+                {' · '}
+                {formatRelative(activeEvent.createdAt)}
+              </>
+            : t('journey.recordingStarts')}
+        </span>
       </div>
 
       <div className="flex items-center gap-3">
@@ -446,19 +454,27 @@ function JourneyStrip({
             {t('journey.noEvents')} {t('journey.recordingStarts')}
           </p>
         )}
-        {events.map((event, index) => (
-          <button
-            key={event.id}
-            onClick={() => onScrub(index + 1)}
-            aria-label={`${index + 1}`}
-            className={`h-2.5 shrink-0 rounded-full border transition-all duration-300 ${
-              index < playhead
-                ? 'w-8 border-accent bg-accent shadow-[0_0_14px_var(--accent-soft)]'
-                : 'w-2.5 border-border-strong bg-surface-3 hover:w-5 hover:border-accent-border'
-            }`}
-            title={eventSentence(event)}
-          />
-        ))}
+        {events.map((event, index) => {
+          const external = event.actor !== 'ban'
+          const done = index < playhead
+          return (
+            <button
+              key={event.id}
+              onClick={() => onScrub(index + 1)}
+              aria-label={`${index + 1}`}
+              className={`h-2.5 shrink-0 rounded-full border transition-all duration-300 ${
+                done
+                  ? external
+                    ? 'w-8 border-warning bg-warning shadow-[0_0_14px_rgba(0,0,0,0.05)]'
+                    : 'w-8 border-accent bg-accent shadow-[0_0_14px_var(--accent-soft)]'
+                  : external
+                    ? 'w-2.5 border-warning/60 bg-surface-3 hover:w-5'
+                    : 'w-2.5 border-border-strong bg-surface-3 hover:w-5 hover:border-accent-border'
+              }`}
+              title={`${external ? '⤳ ' : ''}${eventSentence(event)}`}
+            />
+          )
+        })}
       </div>
     </footer>
   )
@@ -679,6 +695,10 @@ function applyEvents(
 
 function isCardEvent(event: ActivityEvent): boolean {
   return event.kind.startsWith('card.')
+}
+
+function actorLabel(t: (key: string) => string, actor: string): string {
+  return actor === 'ban' ? t('journey.byBan') : t('journey.byAgent')
 }
 
 function eventSentence(event: ActivityEvent): string {

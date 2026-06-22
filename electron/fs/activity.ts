@@ -2,10 +2,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { nanoid } from 'nanoid'
 import type { ActivityEvent, ActivityRange, ActivityCardSnapshot, Card } from '../../lib/types'
-import { kanbanDir } from './project'
+import { banDir } from './paths'
 
 export function activityDir(projectPath: string): string {
-  return path.join(kanbanDir(projectPath), 'activity')
+  return path.join(banDir(projectPath), 'activity')
 }
 
 export function activityFilePath(projectPath: string, date = new Date()): string {
@@ -29,16 +29,18 @@ export function cardSnapshot(card: Card): ActivityCardSnapshot {
 
 export function appendActivityEvent(
   projectPath: string,
-  event: Omit<ActivityEvent, 'id' | 'schemaVersion' | 'actor' | 'source' | 'createdAt'>
+  event: Omit<ActivityEvent, 'id' | 'schemaVersion' | 'createdAt' | 'actor' | 'source'>
+    & { actor?: ActivityEvent['actor']; source?: ActivityEvent['source'] }
 ): ActivityEvent {
   const createdAt = new Date().toISOString()
+  const { actor, source, ...rest } = event
   const fullEvent: ActivityEvent = {
     id: `evt_${nanoid(10)}`,
     schemaVersion: 1,
-    actor: 'ban',
-    source: 'app',
     createdAt,
-    ...event,
+    actor: actor ?? 'ban',
+    source: source ?? 'app',
+    ...rest,
   }
 
   const dir = activityDir(projectPath)

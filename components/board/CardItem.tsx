@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { CardTypeIcon } from '@/components/card/CardTypeIcon'
 import { StatusIcon } from '@/components/card/StatusIcon'
 import { useBoardStore } from '@/lib/store/board'
-import type { Card } from '@/lib/types'
+import type { Card, CardStatus } from '@/lib/types'
 import { ALL_STATUSES } from '@/lib/types'
 import { useT } from '@/lib/i18n'
 import { tagColor } from '@/lib/tag-color'
 import { formatRelative } from '@/lib/utils'
 import { getDraggedCardIds } from '@/lib/card-selection'
-import { TaskIcon } from '@/components/ui/icons'
+import { ContextMenu } from '@/components/ui/ContextMenu'
+import { DeleteIcon, EditIcon, TaskIcon } from '@/components/ui/icons'
 
 interface Props {
   card: Card
@@ -29,11 +30,17 @@ const PRIORITY_KEY: Record<string, string> = {
   urgent: 'priority.urgent', high: 'priority.high', normal: 'priority.normal', low: 'priority.low',
 }
 
+const STATUS_KEY: Record<CardStatus, string> = {
+  inbox: 'column.inbox', shape: 'column.shape', ready: 'column.ready',
+  doing: 'column.doing', review: 'column.review', done: 'column.done', killed: 'column.killed',
+}
+
 export function CardItem({ card, onClick }: Props) {
-  const { moveCard, selectedCardIds, toggleCardSelection } = useBoardStore()
+  const { moveCard, selectedCardIds, toggleCardSelection, deleteCard } = useBoardStore()
   const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const isSelected = selectedCardIds.has(card.id)
 
   // Native HTML5 drag — attached via ref so framer-motion's own onDragStart
@@ -115,6 +122,11 @@ export function CardItem({ card, onClick }: Props) {
       transition={{ duration: 0.12 }}
       ref={ref}
       draggable
+      onContextMenu={e => {
+        e.preventDefault()
+        e.stopPropagation()
+        setContextMenu({ x: e.clientX, y: e.clientY })
+      }}
       onClick={e => {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault()
@@ -195,6 +207,59 @@ export function CardItem({ card, onClick }: Props) {
       <div className="mt-2 ms-10 text-[11px] text-text-muted opacity-0 group-hover/card:opacity-100 transition-opacity">
         {formatRelative(card.updatedAt)}
       </div>
+
+      <AnimatePresence>
+        {contextMenu && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onClose={() => setContextMenu(null)}
+            sections={[
+              {
+                id: 'primary',
+                items: [
+                  {
+                    id: 'open',
+                    label: t('context.open'),
+                    icon: <EditIcon size={14} />,
+                    onSelect: () => onClick(card),
+                  },
+                  {
+                    id: 'select',
+                    label: isSelected ? t('context.deselect') : t('context.select'),
+                    icon: <TaskIcon size={14} />,
+                    onSelect: () => toggleCardSelection(card.id),
+                  },
+                ],
+              },
+              {
+                id: 'move',
+                items: ALL_STATUSES.map(status => ({
+                  id: `move-${status}`,
+                  label: `${t('context.moveTo')} ${t(STATUS_KEY[status])}`,
+                  icon: <StatusIcon status={status} size={14} />,
+                  disabled: status === card.status,
+                  onSelect: () => moveCard(card.id, status),
+                })),
+              },
+              {
+                id: 'danger',
+                items: [
+                  {
+                    id: 'delete',
+                    label: t('card.delete'),
+                    icon: <DeleteIcon size={14} />,
+                    tone: 'danger',
+                    onSelect: () => {
+                      if (window.confirm(t('card.deleteConfirm'))) deleteCard(card.id)
+                    },
+                  },
+                ],
+              },
+            ]}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

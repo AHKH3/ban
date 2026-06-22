@@ -6,12 +6,12 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initProject, readBoard } from '../electron/fs/project'
 
-test('initProject migrates legacy card files to numeric ids', () => {
+test('initProject migrates legacy card files to numeric ids in Tasks/', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ban-project-'))
-  const readyDir = path.join(dir, '.kanban', 'columns', 'ready')
-  fs.mkdirSync(readyDir, { recursive: true })
+  const legacyReadyDir = path.join(dir, '.kanban', 'columns', 'ready')
+  fs.mkdirSync(legacyReadyDir, { recursive: true })
   fs.writeFileSync(
-    path.join(readyDir, 'legacy-card__abc123.md'),
+    path.join(legacyReadyDir, 'legacy-card__abc123.md'),
     matter.stringify('# Legacy card\n', {
       id: 'abc123',
       status: 'ready',
@@ -26,26 +26,40 @@ test('initProject migrates legacy card files to numeric ids', () => {
 
   initProject(dir)
 
-  const migratedPath = path.join(readyDir, 'legacy-card__001.md')
-  assert.equal(fs.existsSync(path.join(readyDir, 'legacy-card__abc123.md')), false)
+  // The hidden legacy folder is gone; the card now lives in the visible Tasks/ folder.
+  assert.equal(fs.existsSync(path.join(dir, '.kanban')), false)
+  const migratedPath = path.join(dir, 'Tasks', 'ready', 'legacy-card__001.md')
   assert.equal(fs.existsSync(migratedPath), true)
   assert.equal(matter(fs.readFileSync(migratedPath, 'utf-8')).data.id, '001')
 })
 
-test('readBoard also applies default gitignore and id migration to existing boards', () => {
+test('initProject relocates legacy app metadata into .ban/', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ban-project-'))
-  const inboxDir = path.join(dir, '.kanban', 'columns', 'inbox')
-  fs.mkdirSync(inboxDir, { recursive: true })
+  fs.mkdirSync(path.join(dir, '.kanban'), { recursive: true })
+  fs.writeFileSync(path.join(dir, '.kanban', 'config.json'), JSON.stringify({ name: 'Legacy' }), 'utf-8')
+
+  initProject(dir)
+
+  assert.equal(fs.existsSync(path.join(dir, '.kanban')), false)
+  const config = JSON.parse(fs.readFileSync(path.join(dir, '.ban', 'config.json'), 'utf-8'))
+  assert.equal(config.name, 'Legacy')
+})
+
+test('readBoard applies gitignore, migration, and reads cards from Tasks/', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ban-project-'))
+  const legacyInboxDir = path.join(dir, '.kanban', 'columns', 'inbox')
+  fs.mkdirSync(legacyInboxDir, { recursive: true })
   fs.writeFileSync(path.join(dir, '.kanban', 'config.json'), JSON.stringify({ name: 'Project' }), 'utf-8')
   fs.writeFileSync(
-    path.join(inboxDir, 'first__old-id.md'),
+    path.join(legacyInboxDir, 'first__old-id.md'),
     matter.stringify('# First\n', { id: 'old-id', status: 'inbox', type: 'task', priority: 'normal', tags: [] }),
     'utf-8'
   )
 
   const board = readBoard(dir)
 
-  assert.match(fs.readFileSync(path.join(dir, '.gitignore'), 'utf-8'), /^\.kanban\/$/m)
+  assert.match(fs.readFileSync(path.join(dir, '.gitignore'), 'utf-8'), /^\.ban\/$/m)
   assert.equal(board.columns.inbox[0].id, '001')
   assert.equal(board.columns.inbox[0].fileName, 'first__001.md')
+  assert.equal(fs.existsSync(path.join(dir, 'Tasks', 'inbox', 'first__001.md')), true)
 })

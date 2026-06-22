@@ -5,12 +5,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initProject } from '../electron/fs/project'
 
-test('initProject creates a project gitignore that excludes local Ban data', () => {
+test('initProject ignores only the hidden .ban app-data folder', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ban-project-'))
 
   initProject(dir)
 
-  assert.match(fs.readFileSync(path.join(dir, '.gitignore'), 'utf-8'), /^\.kanban\/$/m)
+  const gitignore = fs.readFileSync(path.join(dir, '.gitignore'), 'utf-8')
+  assert.match(gitignore, /^\.ban\/$/m)
+  // Tasks/ is committed truth — it must never be ignored.
+  assert.doesNotMatch(gitignore, /^Tasks\/?$/m)
 })
 
 test('initProject appends the Ban ignore rule without duplicating it', () => {
@@ -23,5 +26,18 @@ test('initProject appends the Ban ignore rule without duplicating it', () => {
 
   const gitignore = fs.readFileSync(gitignorePath, 'utf-8')
   assert.match(gitignore, /^node_modules\/$/m)
-  assert.equal(gitignore.match(/^\.kanban\/$/gm)?.length, 1)
+  assert.equal(gitignore.match(/^\.ban\/$/gm)?.length, 1)
+})
+
+test('initProject drops a legacy .kanban ignore rule (Tasks/ is now committed)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ban-project-'))
+  const gitignorePath = path.join(dir, '.gitignore')
+  fs.writeFileSync(gitignorePath, 'node_modules/\n.kanban/\n', 'utf-8')
+
+  initProject(dir)
+
+  const gitignore = fs.readFileSync(gitignorePath, 'utf-8')
+  assert.doesNotMatch(gitignore, /^\.kanban\/?$/m)
+  assert.match(gitignore, /^\.ban\/$/m)
+  assert.match(gitignore, /^node_modules\/$/m)
 })

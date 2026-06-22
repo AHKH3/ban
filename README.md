@@ -15,26 +15,28 @@ Each card is a Markdown file. Capture ideas globally, shape them into tasks, and
 
 ## What is Ban?
 
-Ban is **not** a generic task manager, a Trello/Linear clone, or a Notion database. It is a **file-based Kanban workspace for developers** — one board per project, stored inside the project itself.
+Ban is **not** a generic task manager, a Trello/Linear clone, or a Notion database. It is a **local, file-based, agent-agnostic source-of-truth workspace for developers** — your repository becomes the single truth every AI agent reads from and writes to, so you can use any agent for any task without losing your tasks, plans, rules, or history to that agent's walled garden.
 
-When you open a project folder, Ban reads or creates a `.kanban/` directory next to your code:
+When you open a project folder, Ban sets it up with plain, visible, git-committed folders next to your code — no hidden database:
 
 ```
 your-project/
-└── .kanban/
-    ├── config.json
-    ├── tags.json
-    └── columns/
-        ├── inbox/   shape/   ready/
-        ├── doing/   review/  done/   killed/
-            └── fix-auth-redirect-bug__a91f3.md   ← one card = one Markdown file
+├── Tasks/                          ← Kanban cards (one card = one Markdown file)
+│   ├── inbox/   shape/   ready/
+│   ├── doing/   review/  done/   killed/
+│       └── fix-auth-redirect-bug__001.md
+├── Plans/                          ← planning documents
+├── Skills/                         ← reusable agent skills as Markdown
+├── RULES.md                        ← canonical rules, the single source of truth
+├── CLAUDE.md  AGENTS.md  …         ← each agent's native config, pointing back to RULES.md
+└── .ban/                           ← Ban's own app data (config, tags, activity) — gitignored
 ```
 
-Moving a card between columns moves its file between folders. Editing a card in VS Code updates the board live. The Markdown file is the source of truth — not a hidden database.
+Moving a card between columns moves its file between folders. Editing a card in VS Code — or having an agent edit it directly — updates the board live, and agent edits are recorded in the Journey as attributed events. The Markdown files are the source of truth, and they travel with your repo.
 
 ## Features
 
-- 🗂️ **Project-local boards** — one `.kanban/` board per project, versionable with your code
+- 🗂️ **Project-local, visible boards** — `Tasks/` lives in your repo, committed with your code
 - 📝 **Cards are Markdown files** — readable, editable, and git-friendly, with YAML frontmatter
 - ✨ **Live Markdown editor** — Notion-style inline rendering, no edit/preview toggle, no raw symbols
 - ⚡ **Global capture** — `Ctrl + Shift + Space` from anywhere on Windows to drop a thought into the inbox

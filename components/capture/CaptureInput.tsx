@@ -15,17 +15,27 @@ export function CaptureInput() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    inputRef.current?.focus()
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      window.electronAPI.getDefaultProjectPath().then(setProjectPath)
+    const refreshTarget = () => {
+      inputRef.current?.focus()
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        window.electronAPI.getDefaultProjectPath().then(setProjectPath)
+      }
     }
+    refreshTarget()
+    const unsubscribeCaptureShown = window.electronAPI?.onCaptureShown?.(() => {
+      setStatus('idle')
+      refreshTarget()
+    })
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && typeof window !== 'undefined' && window.electronAPI) {
         window.electronAPI.closeCaptureWindow()
       }
     }
     window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('keydown', handler)
+      unsubscribeCaptureShown?.()
+    }
   }, [])
 
   // Tell the main process the bar has hydrated (theme + RTL applied, styles painted)

@@ -4,7 +4,7 @@ import matter from 'gray-matter'
 import slugify from 'slugify'
 import type { Card, CardStatus, NewCardInput } from '../../lib/types'
 import { nextCardIdForProject } from './card-id'
-import { columnDir } from './project'
+import { columnDir } from './paths'
 
 export function makeSlug(title: string): string {
   return slugify(title, { lower: true, strict: true, trim: true }).slice(0, 50) || 'card'

@@ -70,19 +70,25 @@ export function createCaptureWindow(isDev: boolean): BrowserWindow {
     win.loadFile(path.join(RENDERER_OUT, 'capture', 'index.html'))
   }
 
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'Escape') {
+      event.preventDefault()
+      if (!win.isDestroyed()) win.hide()
+    }
+  })
+
   // Reveal only after the renderer signals it has hydrated — applied the persisted
-  // theme/RTL and painted with styles. Showing on 'ready-to-show' catches the first,
-  // pre-hydration frame (unstyled + default 'en' layout), which is the FOUC the
-  // capture bar used to flash. A timeout guards against a signal that never arrives.
+  // theme/RTL, installed handlers, and painted with styles. Showing on
+  // 'ready-to-show' catches the first pre-hydration frame; a timeout would expose
+  // a native-looking input whose React submit/dismiss handlers are not active.
   let revealed = false
-  const fallback = setTimeout(() => reveal(), 2000)
   function reveal() {
     if (revealed) return
     revealed = true
-    clearTimeout(fallback)
     if (!win.isDestroyed()) {
       win.show()
       win.focus()
+      win.webContents.send('capture:shown')
     }
   }
   const onReady = (e: Electron.IpcMainEvent) => {
@@ -94,7 +100,6 @@ export function createCaptureWindow(isDev: boolean): BrowserWindow {
     if (!win.isDestroyed()) win.hide()
   })
   win.on('closed', () => {
-    clearTimeout(fallback)
     ipcMain.removeListener('capture:ready', onReady)
   })
 

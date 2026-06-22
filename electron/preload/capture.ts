@@ -5,4 +5,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeCaptureWindow: () => ipcRenderer.invoke('capture:close'),
   getDefaultProjectPath: () => ipcRenderer.invoke('project:get-last'),
   signalCaptureReady: () => ipcRenderer.send('capture:ready'),
+  onCaptureShown: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('capture:shown', handler)
+    return () => ipcRenderer.removeListener('capture:shown', handler)
+  },
 })

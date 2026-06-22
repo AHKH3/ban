@@ -27,9 +27,55 @@ const en: Dict = {
   'projects.openAnother': 'Open another folder…',
   'projects.recent': 'Recent projects',
   'projects.opening': 'Opening…',
-  'projects.hint': 'Open a folder to create or load a .kanban board',
+  'projects.hint': 'Open a folder to set it up as a Ban workspace',
   'nav.board': 'Board',
   'nav.journey': 'Journey',
+  'nav.agents': 'Agents',
+  'nav.plans': 'Plans',
+  'nav.files': 'Files',
+  'nav.skills': 'Skills',
+
+  // Agents (rules projection)
+  'agents.title': 'Agents',
+  'agents.subtitle': 'Pick the AI agents you use. Ban writes one set of rules and projects it into each agent’s native config file, so every agent reads the same source of truth.',
+  'agents.yourAgents': 'Your agents',
+  'agents.viaImport': 'via import',
+  'agents.viaInline': 'inline',
+  'agents.rulesTitle': 'Project rules',
+  'agents.rulesHint': 'These rules are the single source. Each selected agent’s config file points back here (imported or inlined). Your own edits outside Ban’s managed block are never touched.',
+  'agents.rulesPlaceholder': 'Write the rules every agent should follow…',
+  'agents.saveRules': 'Save & project',
+  'agents.saving': 'Saving…',
+  'agents.loading': 'Loading agents…',
+  'agents.noneSelected': 'No agents selected yet — pick at least one above to project these rules.',
+
+  // Plans
+  'plans.title': 'Plans',
+  'plans.new': 'New plan',
+  'plans.empty': 'No plans yet.',
+  'plans.untitled': 'Untitled plan',
+  'plans.delete': 'Delete plan',
+  'plans.placeholder': 'Outline the plan…',
+
+  // Files (universal explorer)
+  'files.title': 'Files',
+  'files.pick': 'Select a file to view or edit.',
+  'files.emptyDir': 'empty',
+  'files.binary': 'Binary file — not editable here.',
+  'files.tooLarge': 'File is too large to open inline.',
+  'files.placeholder': 'Empty file…',
+  'files.saved': 'Saved',
+
+  // Skills
+  'skills.title': 'Skills',
+  'skills.new': 'New skill',
+  'skills.empty': 'No skills yet.',
+  'skills.untitled': 'New skill',
+  'skills.delete': 'Delete skill',
+  'skills.intro': 'Install reusable skills as files. Ban lists them in every agent’s config so any agent can discover and use them.',
+  'skills.namePlaceholder': 'Skill name',
+  'skills.descPlaceholder': 'One-line description — when should an agent use this?',
+  'skills.bodyPlaceholder': 'Describe the skill…',
 
   // Board / columns
   'column.inbox': 'Inbox',
@@ -66,6 +112,8 @@ const en: Dict = {
   'journey.noEvents': 'No recorded card journey in this range yet.',
   'journey.recordingStarts': 'Journey starts when Ban records activity for this project.',
   'journey.selectedEvent': 'Selected event',
+  'journey.byBan': 'via Ban',
+  'journey.byAgent': 'by an agent',
 
   // Card
   'card.title': 'Card title',
@@ -81,6 +129,10 @@ const en: Dict = {
   'card.bodyPlaceholder': 'Start writing…',
   'card.deleteConfirm': 'Delete this card?',
   'card.updated': 'Updated',
+  'context.open': 'Open',
+  'context.select': 'Select',
+  'context.deselect': 'Deselect',
+  'context.moveTo': 'Move to',
 
   // New card
   'newCard.title': 'New Card',
@@ -149,9 +201,55 @@ const ar: Dict = {
   'projects.openAnother': 'افتح مجلدًا آخر…',
   'projects.recent': 'المشاريع الأخيرة',
   'projects.opening': 'جارٍ الفتح…',
-  'projects.hint': 'افتح مجلدًا لإنشاء أو تحميل لوحة kanban.',
+  'projects.hint': 'افتح مجلدًا لتجهيزه كمساحة عمل Ban.',
   'nav.board': 'اللوحة',
   'nav.journey': 'الرحلة',
+  'nav.agents': 'الوكلاء',
+  'nav.plans': 'الخطط',
+  'nav.files': 'الملفات',
+  'nav.skills': 'المهارات',
+
+  // Agents (rules projection)
+  'agents.title': 'الوكلاء',
+  'agents.subtitle': 'اختر وكلاء الذكاء الاصطناعي اللي بتستخدمهم. Ban بيكتب مجموعة قواعد واحدة ويسقطها في ملف إعدادات كل وكيل بصيغته الأصلية، فكل الوكلاء بيقروا نفس مصدر الحقيقة.',
+  'agents.yourAgents': 'وكلاؤك',
+  'agents.viaImport': 'عبر الاستيراد',
+  'agents.viaInline': 'مضمّن',
+  'agents.rulesTitle': 'قواعد المشروع',
+  'agents.rulesHint': 'القواعد دي هي المصدر الوحيد. ملف كل وكيل مختار بيوجّه هنا (استيراد أو تضمين). تعديلاتك خارج البلوك المُدار بتاع Ban مبتتلمسش أبدًا.',
+  'agents.rulesPlaceholder': 'اكتب القواعد اللي كل وكيل لازم يتبعها…',
+  'agents.saveRules': 'حفظ وإسقاط',
+  'agents.saving': 'جارٍ الحفظ…',
+  'agents.loading': 'جارٍ تحميل الوكلاء…',
+  'agents.noneSelected': 'مفيش وكلاء مختارين لسه — اختر واحد على الأقل فوق عشان تسقط القواعد دي.',
+
+  // Plans
+  'plans.title': 'الخطط',
+  'plans.new': 'خطة جديدة',
+  'plans.empty': 'مفيش خطط لسه.',
+  'plans.untitled': 'خطة بدون عنوان',
+  'plans.delete': 'حذف الخطة',
+  'plans.placeholder': 'اكتب الخطة…',
+
+  // Files (universal explorer)
+  'files.title': 'الملفات',
+  'files.pick': 'اختر ملفًا للعرض أو التعديل.',
+  'files.emptyDir': 'فارغ',
+  'files.binary': 'ملف ثنائي — غير قابل للتعديل هنا.',
+  'files.tooLarge': 'الملف أكبر من أن يُفتح هنا.',
+  'files.placeholder': 'ملف فارغ…',
+  'files.saved': 'تم الحفظ',
+
+  // Skills
+  'skills.title': 'المهارات',
+  'skills.new': 'مهارة جديدة',
+  'skills.empty': 'مفيش مهارات لسه.',
+  'skills.untitled': 'مهارة جديدة',
+  'skills.delete': 'حذف المهارة',
+  'skills.intro': 'ثبّت مهارات قابلة لإعادة الاستخدام كملفات. Ban بيدرجها في إعدادات كل وكيل عشان أي وكيل يكتشفها ويستخدمها.',
+  'skills.namePlaceholder': 'اسم المهارة',
+  'skills.descPlaceholder': 'وصف بسطر — إمتى الوكيل لازم يستخدمها؟',
+  'skills.bodyPlaceholder': 'اكتب المهارة…',
 
   'column.inbox': 'الوارد',
   'column.shape': 'تشكيل',
@@ -186,6 +284,8 @@ const ar: Dict = {
   'journey.noEvents': 'لا توجد رحلة كروت مسجلة في هذه المدة بعد.',
   'journey.recordingStarts': 'تبدأ الرحلة عندما يسجل Ban نشاط هذا المشروع.',
   'journey.selectedEvent': 'الحدث المحدد',
+  'journey.byBan': 'عبر Ban',
+  'journey.byAgent': 'بواسطة وكيل',
 
   'card.title': 'عنوان البطاقة',
   'card.status': 'الحالة',
@@ -200,6 +300,10 @@ const ar: Dict = {
   'card.bodyPlaceholder': 'ابدأ الكتابة…',
   'card.deleteConfirm': 'حذف هذه البطاقة؟',
   'card.updated': 'آخر تحديث',
+  'context.open': 'فتح',
+  'context.select': 'تحديد',
+  'context.deselect': 'إلغاء التحديد',
+  'context.moveTo': 'نقل إلى',
 
   'newCard.title': 'بطاقة جديدة',
   'newCard.create': 'إنشاء بطاقة',

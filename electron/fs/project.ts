@@ -3,42 +3,49 @@ import * as path from 'path'
 import type { BoardData, CardStatus, Card } from '../../lib/types'
 import { migrateProjectCardIds } from './card-id'
 import { readCardFile } from './cards'
-
-const STATUSES: CardStatus[] = ['inbox', 'shape', 'ready', 'doing', 'review', 'done', 'killed']
+import {
+  STATUSES,
+  banDir,
+  tasksDir,
+  columnDir,
+  legacyKanbanDir,
+} from './paths'
 
 export interface KanbanConfig {
   name: string
   createdAt: string
 }
 
-export function kanbanDir(projectPath: string): string {
-  return path.join(projectPath, '.kanban')
-}
-
-export function columnDir(projectPath: string, status: CardStatus): string {
-  return path.join(kanbanDir(projectPath), 'columns', status)
-}
+// Re-exported for modules that resolve project-local paths (activity, cards, …).
+export { banDir, tasksDir, columnDir } from './paths'
 
 export function isKanbanProject(projectPath: string): boolean {
-  return fs.existsSync(kanbanDir(projectPath))
+  return (
+    fs.existsSync(tasksDir(projectPath)) ||
+    fs.existsSync(banDir(projectPath)) ||
+    fs.existsSync(legacyKanbanDir(projectPath))
+  )
 }
 
 export function initProject(projectPath: string): void {
-  const kDir = kanbanDir(projectPath)
-  if (!fs.existsSync(kDir)) {
-    fs.mkdirSync(kDir, { recursive: true })
-  }
-  ensureKanbanIgnored(projectPath)
+  // Move any pre-inversion `.kanban/` layout into the new visible/committed shape
+  // before anything reads from disk.
+  migrateLegacyKanban(projectPath)
 
-  const columnsDir = path.join(kDir, 'columns')
+  const bDir = banDir(projectPath)
+  if (!fs.existsSync(bDir)) {
+    fs.mkdirSync(bDir, { recursive: true })
+  }
+  ensureBanIgnored(projectPath)
+
   for (const status of STATUSES) {
-    const dir = path.join(columnsDir, status)
+    const dir = columnDir(projectPath, status)
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true })
     }
   }
 
-  const configPath = path.join(kDir, 'config.json')
+  const configPath = path.join(bDir, 'config.json')
   if (!fs.existsSync(configPath)) {
     const config: KanbanConfig = {
       name: path.basename(projectPath),
@@ -47,7 +54,7 @@ export function initProject(projectPath: string): void {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
   }
 
-  const tagsPath = path.join(kDir, 'tags.json')
+  const tagsPath = path.join(bDir, 'tags.json')
   if (!fs.existsSync(tagsPath)) {
     fs.writeFileSync(tagsPath, JSON.stringify({ tags: [] }, null, 2), 'utf-8')
   }
@@ -58,14 +65,14 @@ export function initProject(projectPath: string): void {
 export function readBoard(projectPath: string): BoardData {
   initProject(projectPath)
 
-  const configPath = path.join(kanbanDir(projectPath), 'config.json')
+  const configPath = path.join(banDir(projectPath), 'config.json')
   let projectName = path.basename(projectPath)
   try {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as KanbanConfig
     projectName = config.name
   } catch { /* ignore */ }
 
-  const tagsPath = path.join(kanbanDir(projectPath), 'tags.json')
+  const tagsPath = path.join(banDir(projectPath), 'tags.json')
   let allTags: string[] = []
   try {
     const tagsData = JSON.parse(fs.readFileSync(tagsPath, 'utf-8'))
@@ -105,26 +112,86 @@ export function readBoard(projectPath: string): BoardData {
 }
 
 export function saveTags(projectPath: string, tags: string[]): void {
-  const tagsPath = path.join(kanbanDir(projectPath), 'tags.json')
+  const tagsPath = path.join(banDir(projectPath), 'tags.json')
   fs.writeFileSync(tagsPath, JSON.stringify({ tags }, null, 2), 'utf-8')
 }
 
-function ensureKanbanIgnored(projectPath: string): void {
-  const gitignorePath = path.join(projectPath, '.gitignore')
-  const rule = '.kanban/'
+/**
+ * The Great Inversion: move a pre-inversion `.kanban/` project to the new layout.
+ *
+ *   .kanban/columns/{status}/*.md  ->  Tasks/{status}/*.md   (visible, committed)
+ *   .kanban/{config,tags}.json     ->  .ban/{config,tags}.json (hidden, app data)
+ *   .kanban/activity/              ->  .ban/activity/
+ *
+ * Idempotent and non-destructive: never overwrites a file that already exists at
+ * the destination, so a half-migrated project converges cleanly.
+ */
+function migrateLegacyKanban(projectPath: string): void {
+  const legacy = legacyKanbanDir(projectPath)
+  if (!fs.existsSync(legacy)) return
 
-  let gitignore = ''
-  if (fs.existsSync(gitignorePath)) {
-    gitignore = fs.readFileSync(gitignorePath, 'utf-8')
+  // 1. Cards -> Tasks/{status}/
+  const legacyColumns = path.join(legacy, 'columns')
+  if (fs.existsSync(legacyColumns)) {
+    for (const status of STATUSES) {
+      const from = path.join(legacyColumns, status)
+      if (!fs.existsSync(from)) continue
+      const to = columnDir(projectPath, status)
+      fs.mkdirSync(to, { recursive: true })
+      for (const file of fs.readdirSync(from)) {
+        if (!file.endsWith('.md')) continue
+        const dest = path.join(to, file)
+        if (!fs.existsSync(dest)) fs.renameSync(path.join(from, file), dest)
+      }
+    }
   }
 
-  const hasRule = gitignore
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .some(line => line === rule || line === '.kanban')
+  // 2. App metadata -> .ban/
+  const bDir = banDir(projectPath)
+  fs.mkdirSync(bDir, { recursive: true })
+  for (const meta of ['config.json', 'tags.json']) {
+    const from = path.join(legacy, meta)
+    const to = path.join(bDir, meta)
+    if (fs.existsSync(from) && !fs.existsSync(to)) fs.renameSync(from, to)
+  }
+  const fromActivity = path.join(legacy, 'activity')
+  const toActivity = path.join(bDir, 'activity')
+  if (fs.existsSync(fromActivity) && !fs.existsSync(toActivity)) {
+    fs.renameSync(fromActivity, toActivity)
+  }
 
-  if (hasRule) return
+  // 3. Drop the empty legacy shell (best-effort).
+  try { fs.rmSync(legacy, { recursive: true, force: true }) } catch { /* ignore */ }
+}
 
-  const prefix = gitignore.length === 0 || gitignore.endsWith('\n') ? '' : '\n'
-  fs.writeFileSync(gitignorePath, `${gitignore}${prefix}${rule}\n`, 'utf-8')
+/**
+ * Ignore only the hidden app-data folder. Crucially, drop any legacy `.kanban/`
+ * rule — under the inversion, `Tasks/` is committed truth and must NOT be ignored.
+ */
+function ensureBanIgnored(projectPath: string): void {
+  const gitignorePath = path.join(projectPath, '.gitignore')
+  let text = ''
+  if (fs.existsSync(gitignorePath)) {
+    text = fs.readFileSync(gitignorePath, 'utf-8')
+  }
+
+  const kept = text.split(/\r?\n/).filter(line => {
+    const t = line.trim()
+    return t !== '.kanban/' && t !== '.kanban'
+  })
+
+  const hasBan = kept.some(line => {
+    const t = line.trim()
+    return t === '.ban/' || t === '.ban'
+  })
+
+  let next = kept.join('\n')
+  if (!hasBan) {
+    const prefix = next.length === 0 || next.endsWith('\n') ? '' : '\n'
+    next = `${next}${prefix}.ban/\n`
+  }
+
+  if (next !== text) {
+    fs.writeFileSync(gitignorePath, next, 'utf-8')
+  }
 }

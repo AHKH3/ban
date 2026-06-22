@@ -15,6 +15,7 @@ function showCaptureWindow() {
   if (captureWindow && !captureWindow.isDestroyed()) {
     captureWindow.show()
     captureWindow.focus()
+    captureWindow.webContents.send('capture:shown')
   } else {
     captureWindow = createCaptureWindow(isDev)
     captureWindow.on('closed', () => { captureWindow = null })

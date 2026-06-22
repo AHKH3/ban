@@ -71,12 +71,17 @@ export interface ActivityCardSnapshot {
   fileName?: string
 }
 
+// Who/what caused an event. 'ban' = an action through the app itself; 'external'
+// = a change Ban observed on disk (an agent or another tool editing files directly).
+export type ActivityActor = 'ban' | 'external' | string
+export type ActivitySource = 'app' | 'external'
+
 export interface ActivityEvent {
   id: string
   schemaVersion: 1
   kind: ActivityKind
-  actor: 'ban'
-  source: 'app'
+  actor: ActivityActor
+  source: ActivitySource
   createdAt: string
   cardId?: string
   cardTitle?: string
@@ -91,6 +96,60 @@ export interface ActivityRange {
 }
 
 export type JourneyReplayMode = 'range-state' | 'empty'
+
+// --- Agent projection (the source-of-truth "write once, project everywhere") ---
+
+export interface AgentInfo {
+  id: string            // 'claude' | 'codex' | 'opencode'
+  name: string          // display name
+  configPath: string    // repo-relative native config file, e.g. 'CLAUDE.md'
+  supportsImport: boolean
+}
+
+// --- File explorer (universal viewer/editor over the whole project) ---
+
+export interface FileEntry {
+  name: string
+  relPath: string   // POSIX-style path relative to the project root
+  isDir: boolean
+}
+
+export interface FileContent {
+  relPath: string
+  content: string
+  binary: boolean   // true when not safely editable as text (skipped)
+  tooLarge: boolean
+}
+
+// --- Skills (reusable agent skills as markdown, projected into agent configs) ---
+
+export interface SkillDoc {
+  id: string          // slug, also the filename stem
+  name: string
+  description: string
+  body: string
+  filePath: string
+  fileName: string
+}
+
+// --- Plans (free-form planning documents, a flat collection under Plans/) ---
+
+export interface PlanDoc {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  body: string
+  filePath: string
+  fileName: string
+}
+
+export interface AgentsState {
+  agents: AgentInfo[]   // every agent Ban knows how to project to
+  selected: string[]    // ids the user has opted into
+  rulesPath: string     // repo-relative canonical rules file (e.g. 'RULES.md')
+  rulesContent: string  // current contents of the canonical rules file
+}
 
 export const ALL_STATUSES: CardStatus[] = [
   'inbox', 'shape', 'ready', 'doing', 'review', 'done', 'killed',

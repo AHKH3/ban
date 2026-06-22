@@ -1,8 +1,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import matter from 'gray-matter'
+import { STATUSES, columnDir } from './paths'
 
-const STATUSES = ['inbox', 'shape', 'ready', 'doing', 'review', 'done', 'killed']
 const NUMERIC_ID = /^\d+$/
 
 export function nextCardId(ids: string[]): string {
@@ -51,11 +51,10 @@ function readExistingCardIds(projectPath: string): string[] {
 }
 
 function readCardIdEntries(projectPath: string): Array<{ filePath: string; id: string }> {
-  const columnsPath = path.join(projectPath, '.kanban', 'columns')
   const cards: Array<{ filePath: string; id: string }> = []
 
   for (const status of STATUSES) {
-    const dir = path.join(columnsPath, status)
+    const dir = columnDir(projectPath, status)
     if (!fs.existsSync(dir)) continue
 
     for (const file of fs.readdirSync(dir)) {

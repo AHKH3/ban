@@ -19,7 +19,6 @@ next-env.d.ts
 dev*.log
 
 # Local Ban project data
-.kanban/
 
 # OS / editor
 .DS_Store
@@ -35,3 +34,4 @@ ChatGPT*.png
 
 # Claude Code tooling
 .claude/
+.ban/
