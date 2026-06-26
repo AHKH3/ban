@@ -12,6 +12,20 @@ const APP_ICON = app.isPackaged
   ? path.join(process.resourcesPath, 'icon.png')
   : path.join(__dirname, '..', '..', 'resources', 'icon.png')
 
+const captureAutoHideSuspended = new WeakSet<BrowserWindow>()
+
+export async function withCaptureAutoHideSuspended<T>(
+  win: BrowserWindow,
+  action: () => Promise<T>
+): Promise<T> {
+  captureAutoHideSuspended.add(win)
+  try {
+    return await action()
+  } finally {
+    captureAutoHideSuspended.delete(win)
+  }
+}
+
 export function createMainWindow(isDev: boolean): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
@@ -97,7 +111,7 @@ export function createCaptureWindow(isDev: boolean): BrowserWindow {
   ipcMain.on('capture:ready', onReady)
 
   win.on('blur', () => {
-    if (!win.isDestroyed()) win.hide()
+    if (!win.isDestroyed() && !captureAutoHideSuspended.has(win)) win.hide()
   })
   win.on('closed', () => {
     ipcMain.removeListener('capture:ready', onReady)

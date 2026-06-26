@@ -5,83 +5,100 @@ import { AddIcon, CaptureIcon, FolderIcon } from '@/components/ui/icons'
 import { parseCapture } from '@/lib/parse-capture'
 import { useT } from '@/lib/i18n'
 import { useSettingsStore } from '@/lib/store/settings'
-import type { Project } from '@/lib/types'
+import type { Card } from '@/lib/types'
+
+// ── Direct localStorage persistence (no Electron dependency) ────────────────
+const LS_RECENTS  = 'ban-capture-recents'
+const LS_DEFAULT  = 'ban-capture-default'
+const LS_CAPTURES = 'ban-pending-captures'
+
+interface LocalProject { path: string; name: string; lastOpenedAt: string }
+
+function lsGet<T>(key: string, fallback: T): T {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback } catch { return fallback }
+}
+function lsSet(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* quota */ }
+}
+
+function getRecent(): LocalProject[] { return lsGet<LocalProject[]>(LS_RECENTS, []) }
+function saveRecent(p: LocalProject) {
+  const list = getRecent().filter(x => x.path !== p.path)
+  list.unshift(p)
+  lsSet(LS_RECENTS, list.slice(0, 10))
+  lsSet(LS_DEFAULT, p.path)
+}
+function getDefaultPath(): string | null { return lsGet<string | null>(LS_DEFAULT, null) }
+function makeProject(path: string, name: string): LocalProject {
+  return { path, name, lastOpenedAt: new Date().toISOString() }
+}
+
+// ── Electron IPC helper (graceful fallback) ─────────────────────────────────
+function electra<T>(path: string, ...args: unknown[]): Promise<T | null> {
+  if (typeof window === 'undefined' || !(window as any).electronAPI) return Promise.resolve(null)
+  try {
+    return (window as any).electronAPI[path](...args)
+  } catch { return Promise.resolve(null) }
+}
 
 export function CaptureInput() {
   const t = useT()
   const hydrated = useSettingsStore(s => s.hydrated)
+
   const [value, setValue] = useState('')
   const [projectPath, setProjectPath] = useState<string | null>(null)
-  const [recentProjects, setRecentProjects] = useState<Project[]>([])
-  const [projectPickerOpen, setProjectPickerOpen] = useState(false)
+  const [recentProjects, setRecentProjects] = useState<LocalProject[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerInput, setPickerInput] = useState('')
   const [status, setStatus] = useState<'idle' | 'needs-project' | 'submitting' | 'success' | 'error'>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
 
+  // ── Load saved state on mount ────────────────────────────────────────────
   useEffect(() => {
-    const refreshTarget = async () => {
-      inputRef.current?.focus()
-      if (typeof window !== 'undefined' && window.electronAPI) {
-        const [nextProjectPath, nextRecentProjects] = await Promise.all([
-          window.electronAPI.getDefaultProjectPath(),
-          window.electronAPI.getRecentProjects(),
-        ])
-        setProjectPath(nextProjectPath)
-        setRecentProjects(nextRecentProjects)
-      }
-    }
-    refreshTarget()
-    const unsubscribeCaptureShown = window.electronAPI?.onCaptureShown?.(() => {
-      setStatus('idle')
-      refreshTarget()
-    })
+    inputRef.current?.focus()
+    setProjectPath(getDefaultPath())
+    setRecentProjects(getRecent())
+    electra('signalCaptureReady')
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && typeof window !== 'undefined' && window.electronAPI) {
-        window.electronAPI.closeCaptureWindow()
+      if (e.key === 'Escape') {
+        setPickerOpen(false)
+        electra('closeCaptureWindow')
       }
     }
     window.addEventListener('keydown', handler)
-    return () => {
-      window.removeEventListener('keydown', handler)
-      unsubscribeCaptureShown?.()
-    }
-  }, [])
+    return () => window.removeEventListener('keydown', handler)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Tell the main process the bar has hydrated (theme + RTL applied, styles painted)
-  // so it reveals the native window only once — never the raw pre-hydration frame.
+  // ── Close picker on outside click ────────────────────────────────────────
   useEffect(() => {
-    if (!hydrated) return
-    const id = requestAnimationFrame(() => window.electronAPI?.signalCaptureReady?.())
-    return () => cancelAnimationFrame(id)
-  }, [hydrated])
+    if (!pickerOpen) return
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false)
+      }
+    }
+    // Delay attaching so the opening click itself doesn't close it
+    const id = requestAnimationFrame(() => document.addEventListener('click', handler))
+    return () => { cancelAnimationFrame(id); document.removeEventListener('click', handler) }
+  }, [pickerOpen])
 
+  // ── Derived ──────────────────────────────────────────────────────────────
   const parsed = value.trim() ? parseCapture(value) : null
-  const selectedProject = recentProjects.find(project => project.path === projectPath)
+  const selectedProject = recentProjects.find(p => p.path === projectPath)
   const projectName = projectPath
     ? selectedProject?.name ?? projectPath.split(/[\\/]/).filter(Boolean).pop()
     : null
 
-  const selectProject = async (nextProjectPath: string) => {
-    try {
-      setStatus('idle')
-      await window.electronAPI.openProject(nextProjectPath)
-      setProjectPath(nextProjectPath)
-      setProjectPickerOpen(false)
-      const nextRecentProjects = await window.electronAPI.getRecentProjects()
-      setRecentProjects(nextRecentProjects)
-      inputRef.current?.focus()
-    } catch {
-      setStatus('error')
-      inputRef.current?.focus()
-    }
-  }
-
-  const chooseProjectFolder = async () => {
-    try {
-      const nextProjectPath = await window.electronAPI.openProjectDialog()
-      if (nextProjectPath) await selectProject(nextProjectPath)
-    } catch {
-      setStatus('error')
-    }
+  const selectProject = (next: string) => {
+    const name = next.split(/[\\/]/).filter(Boolean).pop() || next
+    const p = makeProject(next, name)
+    saveRecent(p)
+    setProjectPath(next)
+    setRecentProjects(getRecent())
+    setPickerOpen(false)
+    setPickerInput('')
+    inputRef.current?.focus()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,17 +106,32 @@ export function CaptureInput() {
     if (!value.trim()) return
     if (!projectPath) {
       setStatus('needs-project')
-      setProjectPickerOpen(true)
+      setPickerOpen(true)
       return
     }
     setStatus('submitting')
     try {
-      await window.electronAPI.submitCapture(value.trim(), projectPath)
+      // Try Electron IPC first, fall back to localStorage
+      const ok = await electra('submitCapture', value.trim(), projectPath)
+      if (!ok) {
+        // Browser fallback — stash in localStorage
+        const stash = lsGet<any[]>(LS_CAPTURES, [])
+        stash.push({
+          id: `cap_${Date.now()}`,
+          title: value.trim().split('\n')[0].slice(0, 80),
+          body: value.trim(),
+          projectPath,
+          status: 'inbox',
+          type: 'task',
+          createdAt: new Date().toISOString(),
+        })
+        lsSet(LS_CAPTURES, stash)
+      }
       setStatus('success')
+      setValue('')
       setTimeout(() => {
-        setValue('')
         setStatus('idle')
-        window.electronAPI.closeCaptureWindow()
+        electra('closeCaptureWindow')
       }, 400)
     } catch {
       setStatus('error')
@@ -108,15 +140,11 @@ export function CaptureInput() {
   }
 
   const canSubmit = !!value.trim() && status !== 'submitting'
-  const statusText = status === 'needs-project'
-    ? t('capture.pickProject')
-    : status === 'submitting'
-      ? t('capture.saving')
-      : status === 'success'
-        ? t('capture.saved')
-        : status === 'error'
-          ? t('capture.error')
-          : ''
+  const statusText =
+    status === 'needs-project' ? t('capture.pickProject') :
+    status === 'submitting'     ? t('capture.saving') :
+    status === 'success'        ? t('capture.saved') :
+    status === 'error'          ? t('capture.error') : ''
 
   return (
     <form
@@ -126,6 +154,7 @@ export function CaptureInput() {
     >
       <div id="capture-drag-handle" className="titlebar-drag absolute inset-x-3 top-1 h-3" />
 
+      {/* ── Top bar: label + project picker ──────────────────────────────── */}
       <div id="capture-target" className="titlebar-nodrag flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">
           <span className="grid h-6 w-6 place-items-center rounded-md border border-accent-border bg-accent-soft text-accent">
@@ -133,15 +162,73 @@ export function CaptureInput() {
           </span>
           {t('shortcut.capture')}
         </span>
-        <button
-          type="button"
-          onClick={() => setProjectPickerOpen(open => !open)}
-          className="titlebar-nodrag flex min-w-0 max-w-[280px] items-center gap-2 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-text-primary"
-        >
-          <FolderIcon size={13} />
-          <span className="truncate">{projectName ?? t('capture.chooseProject')}</span>
-          <span className="text-[10px] text-text-muted">⌄</span>
-        </button>
+        <div ref={pickerRef} className="relative">
+          <button
+            id="capture-project-btn"
+            type="button"
+            onClick={() => setPickerOpen(o => !o)}
+            className="titlebar-nodrag flex min-w-0 max-w-[280px] items-center gap-2 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-text-primary"
+          >
+            <FolderIcon size={13} />
+            <span className="truncate">{projectName ?? t('capture.chooseProject')}</span>
+            <span className="text-[10px] text-text-muted">⌄</span>
+          </button>
+
+          {/* ── Dropdown picker ──────────────────────────────────────────── */}
+          {pickerOpen && (
+            <div
+              id="capture-picker-dropdown"
+              className="titlebar-nodrag absolute right-0 top-full z-50 mt-1.5 w-64 overflow-hidden rounded-lg border border-border-subtle bg-surface-2 shadow-xl"
+            >
+              {/* Recent projects */}
+              {recentProjects.length > 0 && (
+                <div className="max-h-40 overflow-y-auto border-b border-border-subtle p-1">
+                  {recentProjects.map(p => (
+                    <button
+                      key={p.path}
+                      type="button"
+                      onClick={() => selectProject(p.path)}
+                      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
+                        p.path === projectPath
+                          ? 'bg-accent-soft text-accent'
+                          : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary'
+                      }`}
+                    >
+                      <FolderIcon size={12} />
+                      <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                      {p.path === projectPath && <span className="text-[10px] text-accent">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* New / custom project */}
+              <div className="flex items-center gap-1.5 p-2">
+                <input
+                  type="text"
+                  value={pickerInput}
+                  onChange={e => setPickerInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && pickerInput.trim()) {
+                      selectProject(pickerInput.trim())
+                    }
+                  }}
+                  placeholder={t('capture.openProject')}
+                  className="min-w-0 flex-1 rounded-md border border-border-subtle bg-surface-3 px-2.5 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-muted focus:border-accent-border"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => pickerInput.trim() && selectProject(pickerInput.trim())}
+                  disabled={!pickerInput.trim()}
+                  className="shrink-0 rounded-md bg-accent px-2.5 py-1.5 text-xs text-accent-contrast transition-opacity hover:opacity-90 disabled:opacity-40"
+                >
+                  {t('capture.save')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         {statusText && (
           <span className={`shrink-0 text-[11px] ${status === 'error' || status === 'needs-project' ? 'text-danger' : 'text-text-muted'}`}>
             {statusText}
@@ -149,32 +236,7 @@ export function CaptureInput() {
         )}
       </div>
 
-      {projectPickerOpen && (
-        <div id="capture-projects" className="titlebar-nodrag flex items-center gap-1.5 overflow-hidden">
-          {recentProjects.slice(0, 3).map(project => (
-            <button
-              key={project.path}
-              type="button"
-              onClick={() => selectProject(project.path)}
-              className={`titlebar-nodrag min-w-0 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
-                project.path === projectPath
-                  ? 'border-accent-border bg-accent-soft text-accent'
-                  : 'border-border-subtle bg-transparent text-text-muted hover:border-border-strong hover:text-text-primary'
-              }`}
-            >
-              <span className="block max-w-[130px] truncate">{project.name}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={chooseProjectFolder}
-            className="titlebar-nodrag shrink-0 rounded-md border border-border-subtle bg-transparent px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
-          >
-            {t('capture.openProject')}
-          </button>
-        </div>
-      )}
-
+      {/* ── Input row ────────────────────────────────────────────────────── */}
       <div id="capture-row" className="titlebar-nodrag flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-2 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
         <input
           ref={inputRef}
@@ -215,7 +277,7 @@ export function CaptureInput() {
         </button>
       </div>
 
-      {/* Footer: target project + keyboard hints */}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <div id="capture-foot" className="titlebar-nodrag flex items-center justify-between gap-3 px-1 text-[11px] text-text-muted">
         <span className="min-w-0 truncate">{projectPath ?? t('capture.noProject')}</span>
         <span className="flex shrink-0 items-center gap-3">

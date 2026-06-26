@@ -3,18 +3,39 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 const Store = require('electron-store')
 import type { Project } from '../../lib/types'
 import { selectDefaultProjectPath } from '../../lib/capture-project'
-import { readBoard, initProject, isKanbanProject } from '../fs/project'
+import {
+  readBoard,
+  initProject,
+  isKanbanProject,
+  getProjectVersioningSettings,
+  updateProjectVersioningSettings,
+} from '../fs/project'
 import { indexProject } from '../db'
 import { watchProject } from '../watcher'
+import { withCaptureAutoHideSuspended } from '../windows'
 
 const store = new Store({ name: 'ban-prefs' })
 
-export function setupProjectIPC(getMainWindow: () => BrowserWindow | null): void {
-  ipcMain.handle('project:open-dialog', async () => {
-    const result = await dialog.showOpenDialog({
+export function setupProjectIPC(
+  getMainWindow: () => BrowserWindow | null,
+  getCaptureWindow: () => BrowserWindow | null
+): void {
+  ipcMain.handle('project:open-dialog', async (event: Electron.IpcMainInvokeEvent) => {
+    const caller = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.OpenDialogOptions = {
       properties: ['openDirectory'],
       title: 'Open Project Folder',
-    })
+    }
+    const showDialog = () => caller && !caller.isDestroyed()
+      ? dialog.showOpenDialog(caller, options)
+      : dialog.showOpenDialog(options)
+
+    const captureWindow = getCaptureWindow()
+    const isCaptureCaller = !!captureWindow && caller?.id === captureWindow.id
+    const result = isCaptureCaller
+      ? await withCaptureAutoHideSuspended(captureWindow, showDialog)
+      : await showDialog()
+
     if (result.canceled || !result.filePaths[0]) return null
     return result.filePaths[0]
   })
@@ -48,6 +69,14 @@ export function setupProjectIPC(getMainWindow: () => BrowserWindow | null): void
 
   ipcMain.handle('project:init', async (_event, projectPath: string) => {
     initProject(projectPath)
+  })
+
+  ipcMain.handle('project:get-versioning-settings', async (_event, projectPath: string) => {
+    return getProjectVersioningSettings(projectPath)
+  })
+
+  ipcMain.handle('project:update-versioning-settings', async (_event, projectPath: string, settings: unknown) => {
+    return updateProjectVersioningSettings(projectPath, settings as Parameters<typeof updateProjectVersioningSettings>[1])
   })
 
   ipcMain.handle('project:get-recent', async () => {

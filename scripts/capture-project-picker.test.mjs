@@ -4,6 +4,9 @@ import { readFileSync } from 'node:fs'
 const preloadSource = readFileSync(new URL('../electron/preload/capture.ts', import.meta.url), 'utf8')
 const inputSource = readFileSync(new URL('../components/capture/CaptureInput.tsx', import.meta.url), 'utf8')
 const layoutSource = readFileSync(new URL('../app/capture/layout.tsx', import.meta.url), 'utf8')
+const projectIpcSource = readFileSync(new URL('../electron/ipc/project.ts', import.meta.url), 'utf8')
+const ipcIndexSource = readFileSync(new URL('../electron/ipc/index.ts', import.meta.url), 'utf8')
+const windowsSource = readFileSync(new URL('../electron/windows.ts', import.meta.url), 'utf8')
 
 assert.match(
   preloadSource,
@@ -51,4 +54,34 @@ assert.match(
   layoutSource,
   /#capture-root button,#capture-root input\{[^}]*-webkit-app-region:no-drag/,
   'capture controls must explicitly opt out of Electron drag regions',
+)
+
+assert.match(
+  inputSource,
+  /recentProjects\.length === 0\s*\?\s*chooseProjectFolder\(\)\s*:\s*setProjectPickerOpen/,
+  'capture choose-project button should open the folder picker directly when there are no recent projects',
+)
+
+assert.match(
+  ipcIndexSource,
+  /setupProjectIPC\(getMainWindow,\s*getCaptureWindow\)/,
+  'project IPC should receive the capture window so capture-specific dialogs can be handled',
+)
+
+assert.match(
+  projectIpcSource,
+  /BrowserWindow\.fromWebContents\(event\.sender\)/,
+  'project folder dialog should be parented to the window that invoked it',
+)
+
+assert.match(
+  projectIpcSource,
+  /withCaptureAutoHideSuspended/,
+  'capture project folder dialog should suspend capture auto-hide while the native dialog owns focus',
+)
+
+assert.match(
+  windowsSource,
+  /export async function withCaptureAutoHideSuspended/,
+  'capture window should expose a scoped auto-hide suspension helper',
 )

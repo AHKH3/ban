@@ -47,3 +47,41 @@ assert.match(
   /deleteCard/,
   'card context menu should include a delete action',
 )
+
+assert.doesNotMatch(
+  cardItemSource,
+  /items:\s*ALL_STATUSES\.map\(status/,
+  'card context menu should collapse statuses behind the current status row',
+)
+
+assert.match(
+  cardItemSource,
+  /context\.status/,
+  'card context menu should include a collapsed status control',
+)
+
+assert.match(
+  cardItemSource,
+  /context\.priority/,
+  'card context menu should include a collapsed priority control',
+)
+
+assert.match(
+  cardItemSource,
+  /context\.tags/,
+  'card context menu should include a tags control',
+)
+
+assert.match(
+  cardItemSource,
+  /context\.addTag/,
+  'card context menu should allow adding a new tag',
+)
+
+const contextMenuSource = readFileSync(new URL('../components/ui/ContextMenu.tsx', import.meta.url), 'utf8')
+
+assert.match(
+  contextMenuSource,
+  /submenu/,
+  'shared context menu should support click-open submenus',
+)

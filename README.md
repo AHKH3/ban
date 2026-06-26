@@ -15,28 +15,28 @@ Each card is a Markdown file. Capture ideas globally, shape them into tasks, and
 
 ## What is Ban?
 
-Ban is **not** a generic task manager, a Trello/Linear clone, or a Notion database. It is a **local, file-based, agent-agnostic source-of-truth workspace for developers** — your repository becomes the single truth every AI agent reads from and writes to, so you can use any agent for any task without losing your tasks, plans, rules, or history to that agent's walled garden.
+Ban is **not** a generic task manager, a Trello/Linear clone, or a Notion database. It is a **local, file-based, agent-agnostic source-of-truth workspace for developers** — your project folder becomes the single truth every AI agent reads from and writes to, so you can use any agent for any task without losing your tasks, plans, rules, or history to that agent's walled garden.
 
-When you open a project folder, Ban sets it up with plain, visible, git-committed folders next to your code — no hidden database:
+When you open a project folder, Ban sets it up with plain, visible folders next to your code. They are local and gitignored by default, with project settings for opting specific Ban folders back into git:
 
 ```
 your-project/
-├── Tasks/                          ← Kanban cards (one card = one Markdown file)
+├── Tasks/                          ← local Kanban cards (one card = one Markdown file)
 │   ├── inbox/   shape/   ready/
 │   ├── doing/   review/  done/   killed/
 │       └── fix-auth-redirect-bug__001.md
-├── Plans/                          ← planning documents
-├── Skills/                         ← reusable agent skills as Markdown
-├── RULES.md                        ← canonical rules, the single source of truth
-├── CLAUDE.md  AGENTS.md  …         ← each agent's native config, pointing back to RULES.md
+├── Plans/                          ← local planning documents
+├── Skills/                         ← local reusable agent skills as Markdown
+├── RULES.md                        ← local canonical rules, the single source of truth
+├── CLAUDE.md  AGENTS.md  …         ← local agent configs, pointing back to RULES.md
 └── .ban/                           ← Ban's own app data (config, tags, activity) — gitignored
 ```
 
-Moving a card between columns moves its file between folders. Editing a card in VS Code — or having an agent edit it directly — updates the board live, and agent edits are recorded in the Journey as attributed events. The Markdown files are the source of truth, and they travel with your repo.
+Moving a card between columns moves its file between folders. Editing a card in VS Code — or having an agent edit it directly — updates the board live, and agent edits are recorded in the Journey as attributed events. The Markdown files are the source of truth for Ban, but they stay private unless you opt into tracking them.
 
 ## Features
 
-- 🗂️ **Project-local, visible boards** — `Tasks/` lives in your repo, committed with your code
+- 🗂️ **Project-local, visible boards** — `Tasks/` lives beside your code, private by default
 - 📝 **Cards are Markdown files** — readable, editable, and git-friendly, with YAML frontmatter
 - ✨ **Live Markdown editor** — Notion-style inline rendering, no edit/preview toggle, no raw symbols
 - ⚡ **Global capture** — `Ctrl + Shift + Space` from anywhere on Windows to drop a thought into the inbox

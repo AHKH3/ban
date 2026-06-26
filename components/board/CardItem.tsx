@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { CardTypeIcon } from '@/components/card/CardTypeIcon'
 import { StatusIcon } from '@/components/card/StatusIcon'
 import { useBoardStore } from '@/lib/store/board'
-import type { Card, CardStatus } from '@/lib/types'
+import { useUIStore } from '@/lib/store/ui'
+import type { Card, CardPriority, CardStatus } from '@/lib/types'
 import { ALL_STATUSES } from '@/lib/types'
 import { useT } from '@/lib/i18n'
 import { tagColor } from '@/lib/tag-color'
@@ -30,18 +31,24 @@ const PRIORITY_KEY: Record<string, string> = {
   urgent: 'priority.urgent', high: 'priority.high', normal: 'priority.normal', low: 'priority.low',
 }
 
+const PRIORITIES: CardPriority[] = ['urgent', 'high', 'normal', 'low']
+
 const STATUS_KEY: Record<CardStatus, string> = {
   inbox: 'column.inbox', shape: 'column.shape', ready: 'column.ready',
   doing: 'column.doing', review: 'column.review', done: 'column.done', killed: 'column.killed',
 }
 
 export function CardItem({ card, onClick }: Props) {
-  const { moveCard, selectedCardIds, toggleCardSelection, deleteCard } = useBoardStore()
+  const { board, moveCard, updateCard, selectedCardIds, toggleCardSelection, deleteCard } = useBoardStore()
   const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [tagDraft, setTagDraft] = useState('')
   const isSelected = selectedCardIds.has(card.id)
+  const availableTags = Array.from(new Set([...(board?.tags ?? []), ...card.tags])).sort((a, b) =>
+    a.localeCompare(b),
+  )
 
   // Native HTML5 drag — attached via ref so framer-motion's own onDragStart
   // gesture prop doesn't shadow it.
@@ -125,6 +132,7 @@ export function CardItem({ card, onClick }: Props) {
       onContextMenu={e => {
         e.preventDefault()
         e.stopPropagation()
+        setTagDraft('')
         setContextMenu({ x: e.clientX, y: e.clientY })
       }}
       onClick={e => {
@@ -213,6 +221,7 @@ export function CardItem({ card, onClick }: Props) {
           <ContextMenu
             x={contextMenu.x}
             y={contextMenu.y}
+            estimatedHeight={420}
             onClose={() => setContextMenu(null)}
             sections={[
               {
@@ -233,14 +242,154 @@ export function CardItem({ card, onClick }: Props) {
                 ],
               },
               {
-                id: 'move',
-                items: ALL_STATUSES.map(status => ({
-                  id: `move-${status}`,
-                  label: `${t('context.moveTo')} ${t(STATUS_KEY[status])}`,
-                  icon: <StatusIcon status={status} size={14} />,
-                  disabled: status === card.status,
-                  onSelect: () => moveCard(card.id, status),
-                })),
+                id: 'metadata',
+                items: [
+                  {
+                    id: 'status',
+                    label: t('context.status'),
+                    detail: t(STATUS_KEY[card.status]),
+                    icon: <StatusIcon status={card.status} size={14} />,
+                    onSelect: () => {},
+                    submenu: (
+                      <div className="grid gap-0.5">
+                        {ALL_STATUSES.map(status => (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() => {
+                              if (status !== card.status) moveCard(card.id, status)
+                              setContextMenu(null)
+                            }}
+                            className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-start text-sm transition-colors ${
+                              status === card.status
+                                ? 'bg-surface-3 text-text-primary'
+                                : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary'
+                            }`}
+                          >
+                            <StatusIcon status={status} size={14} />
+                            <span className="min-w-0 flex-1 truncate">{t(STATUS_KEY[status])}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ),
+                  },
+                  {
+                    id: 'priority',
+                    label: t('context.priority'),
+                    detail: t(PRIORITY_KEY[card.priority]),
+                    icon: (
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          card.priority === 'urgent'
+                            ? 'bg-danger'
+                            : card.priority === 'high'
+                              ? 'bg-warning'
+                              : 'border border-border-strong bg-transparent'
+                        }`}
+                      />
+                    ),
+                    onSelect: () => {},
+                    submenu: (
+                      <div className="grid gap-0.5">
+                        {PRIORITIES.map(priority => (
+                          <button
+                            key={priority}
+                            type="button"
+                            onClick={() => {
+                              if (priority !== card.priority) updateCard(card.id, { priority })
+                              setContextMenu(null)
+                            }}
+                            className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-start text-sm transition-colors ${
+                              priority === card.priority
+                                ? 'bg-surface-3 text-text-primary'
+                                : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary'
+                            }`}
+                          >
+                            <span
+                              className={`h-2 w-2 rounded-full ${
+                                priority === 'urgent'
+                                  ? 'bg-danger'
+                                  : priority === 'high'
+                                    ? 'bg-warning'
+                                    : 'border border-border-strong bg-transparent'
+                              }`}
+                            />
+                            <span className="min-w-0 flex-1 truncate">{t(PRIORITY_KEY[priority])}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ),
+                  },
+                  {
+                    id: 'tags',
+                    label: t('context.tags'),
+                    detail: card.tags.length ? card.tags.map(tag => `#${tag}`).join(', ') : t('context.noTags'),
+                    icon: <span className="text-xs font-semibold text-text-muted">#</span>,
+                    onSelect: () => {},
+                    submenu: (
+                      <div className="w-56">
+                        <div className="max-h-44 overflow-y-auto pe-1">
+                          {availableTags.length > 0 ? (
+                            availableTags.map(tag => {
+                              const selected = card.tags.includes(tag)
+                              const c = tagColor(tag)
+                              return (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => {
+                                    const tags = selected
+                                      ? card.tags.filter(current => current !== tag)
+                                      : [...card.tags, tag]
+                                    updateCard(card.id, { tags })
+                                  }}
+                                  className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-start text-sm transition-colors ${
+                                    selected
+                                      ? 'bg-surface-3 text-text-primary'
+                                      : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary'
+                                  }`}
+                                >
+                                  <span
+                                    className="h-2.5 w-2.5 rounded-full border"
+                                    style={{ background: c.bg, borderColor: c.border }}
+                                  />
+                                  <span className="min-w-0 flex-1 truncate">#{tag}</span>
+                                  {selected && <TaskIcon size={13} color="var(--accent)" />}
+                                </button>
+                              )
+                            })
+                          ) : (
+                            <div className="px-2 py-1.5 text-xs text-text-muted">{t('context.noTags')}</div>
+                          )}
+                        </div>
+
+                        <form
+                          className="mt-1 flex items-center gap-1 border-t border-border-subtle pt-1"
+                          onSubmit={event => {
+                            event.preventDefault()
+                            const tag = normalizeTag(tagDraft)
+                            if (!tag) return
+                            if (!card.tags.includes(tag)) updateCard(card.id, { tags: [...card.tags, tag] })
+                            setTagDraft('')
+                          }}
+                        >
+                          <input
+                            value={tagDraft}
+                            onChange={event => setTagDraft(event.target.value)}
+                            placeholder={t('context.addTag')}
+                            className="min-w-0 flex-1 rounded border border-border-subtle bg-surface-1 px-2 py-1 text-xs text-text-secondary outline-none placeholder:text-text-muted focus:border-accent-border"
+                          />
+                          <button
+                            type="submit"
+                            className="rounded bg-surface-3 px-2 py-1 text-xs text-text-secondary transition-colors hover:text-text-primary"
+                          >
+                            {t('context.addTag')}
+                          </button>
+                        </form>
+                      </div>
+                    ),
+                  },
+                ],
               },
               {
                 id: 'danger',
@@ -262,4 +411,8 @@ export function CardItem({ card, onClick }: Props) {
       </AnimatePresence>
     </motion.div>
   )
+}
+
+function normalizeTag(tag: string): string {
+  return tag.trim().toLowerCase().replace(/^#/, '')
 }

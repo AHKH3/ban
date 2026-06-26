@@ -7,12 +7,8 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { ProjectPicker } from '@/components/projects/ProjectPicker'
 import { Board } from '@/components/board/Board'
 import { JourneyView } from '@/components/journey/JourneyView'
-import { AgentsPanel } from '@/components/agents/AgentsPanel'
-import { PlansView } from '@/components/plans/PlansView'
 import { FileExplorer } from '@/components/explorer/FileExplorer'
-import { SkillsManager } from '@/components/skills/SkillsManager'
 import { CommandPalette } from '@/components/search/CommandPalette'
-import { RunPanel } from '@/components/runs/RunPanel'
 import { matchesShortcut } from '@/lib/shortcuts'
 import { useSettingsStore } from '@/lib/store/settings'
 import '@/lib/ipc'
@@ -60,14 +56,8 @@ export default function Home() {
 
   return (
     <MainLayout>
-      {activeView === 'journey' ? <JourneyView />
-        : activeView === 'agents' ? <AgentsPanel />
-        : activeView === 'plans' ? <PlansView />
-        : activeView === 'files' ? <FileExplorer />
-        : activeView === 'skills' ? <SkillsManager />
-        : <Board />}
+      {activeView === 'journey' ? <JourneyView /> : activeView === 'files' ? <FileExplorer /> : <Board />}
       {commandPaletteOpen && <CommandPalette />}
-      <RunPanel />
     </MainLayout>
   )
 }

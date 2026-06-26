@@ -35,3 +35,12 @@ ChatGPT*.png
 # Claude Code tooling
 .claude/
 .ban/
+.kanban/
+Tasks/
+Plans/
+Skills/
+RULES.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+OPENCODE.md

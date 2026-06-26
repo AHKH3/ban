@@ -1,4 +1,4 @@
-import type { BoardData, Card, Project, SearchResult, NewCardInput, ActivityEvent, ActivityRange, AgentsState, PlanDoc, FileEntry, FileContent, SkillDoc, AvailableAgent, RunMeta, RunLine, RunMessage, RunStartInput } from './types'
+import type { BoardData, Card, Project, SearchResult, NewCardInput, ActivityEvent, ActivityRange, FileEntry, FileContent, ProjectVersioningSettings } from './types'
 import type { ShortcutBinding } from './shortcuts'
 
 export interface ElectronAPI {
@@ -6,7 +6,13 @@ export interface ElectronAPI {
   openProjectDialog(): Promise<string | null>
   openProject(projectPath: string): Promise<BoardData>
   initProject(projectPath: string): Promise<void>
+  getProjectVersioningSettings(projectPath: string): Promise<ProjectVersioningSettings>
+  updateProjectVersioningSettings(
+    projectPath: string,
+    settings: ProjectVersioningSettings
+  ): Promise<ProjectVersioningSettings>
   getRecentProjects(): Promise<Project[]>
+  getDefaultProjectPath(): Promise<string | null>
 
   // Cards
   createCard(data: NewCardInput & { projectPath: string }): Promise<Card>
@@ -20,40 +26,14 @@ export interface ElectronAPI {
   // Activity
   getActivityEvents(projectPath: string, range: ActivityRange): Promise<ActivityEvent[]>
 
-  // Agents (rules projection)
-  getAgents(projectPath: string): Promise<AgentsState>
-  setSelectedAgents(projectPath: string, selected: string[]): Promise<AgentsState>
-  saveAgentRules(projectPath: string, content: string): Promise<AgentsState>
-
-  // Plans
-  listPlans(projectPath: string): Promise<PlanDoc[]>
-  createPlan(projectPath: string, title: string): Promise<PlanDoc>
-  updatePlan(projectPath: string, id: string, updates: { title?: string; body?: string }): Promise<PlanDoc | null>
-  deletePlan(projectPath: string, id: string): Promise<void>
-
   // Files (universal explorer)
   listDir(projectPath: string, relPath: string): Promise<FileEntry[]>
   readFile(projectPath: string, relPath: string): Promise<FileContent>
   writeFile(projectPath: string, relPath: string, content: string): Promise<void>
 
-  // Skills
-  listSkills(projectPath: string): Promise<SkillDoc[]>
-  createSkill(projectPath: string, name: string): Promise<SkillDoc>
-  updateSkill(projectPath: string, id: string, updates: { name?: string; description?: string; body?: string }): Promise<SkillDoc | null>
-  deleteSkill(projectPath: string, id: string): Promise<void>
-
-  // Orchestration (assign a card to a local agent)
-  detectAgents(): Promise<AvailableAgent[]>
-  startRun(input: RunStartInput): Promise<RunMeta>
-  stopRun(runId: string): Promise<void>
-  listRuns(projectPath: string): Promise<RunMeta[]>
-  getRunLines(projectPath: string, runId: string): Promise<RunLine[]>
-  onRunEvent(callback: (msg: RunMessage) => void): () => void
-
   // Capture
   submitCapture(raw: string, projectPath: string): Promise<Card>
   closeCaptureWindow(): Promise<void>
-  getDefaultProjectPath(): Promise<string | null>
   signalCaptureReady(): void
   onCaptureShown(callback: () => void): () => void
 

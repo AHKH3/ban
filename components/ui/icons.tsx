@@ -96,3 +96,15 @@ export const CodeIcon = makeIcon(SourceCodeIcon)
 export const PreviewIcon = makeIcon(EyeIcon)
 export const BackIcon = makeIcon(ArrowLeft01Icon)
 export const EditIcon = makeIcon(PencilEdit01Icon)
+
+// Hand-rolled terminal glyph (kept off Hugeicons to avoid name drift).
+export function TerminalIcon({ size = 16, color, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color ?? 'currentColor'} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"
+      className={className}>
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
+      <path d="M6.5 9.5 9.5 12l-3 2.5M12.5 14.5h5" />
+    </svg>
+  )
+}

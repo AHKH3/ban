@@ -68,6 +68,7 @@
       "package.json",
       "resources/**/*"
     ],
+    "asarUnpack": [],
     "win": {
       "target": "nsis",
       "icon": "resources/icon.ico",

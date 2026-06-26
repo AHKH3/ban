@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 
-export type AppView = 'board' | 'journey' | 'agents' | 'plans' | 'files' | 'skills'
+export type AppView = 'board' | 'journey' | 'files'
 
 interface UIStore {
   commandPaletteOpen: boolean

@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { StatusIcon } from '@/components/card/StatusIcon'
 import { useSettingsStore, THEMES } from '@/lib/store/settings'
 import type { ThemeId } from '@/lib/store/settings'
+import { useBoardStore } from '@/lib/store/board'
 import { useT, LANGUAGES } from '@/lib/i18n'
 import { CARD_TYPE_LABELS } from '@/lib/types'
-import type { CardType } from '@/lib/types'
+import type { CardType, ProjectVersioningSettings } from '@/lib/types'
 import { formatShortcut, shortcutFromEvent } from '@/lib/shortcuts'
 import type { ShortcutAction } from '@/lib/shortcuts'
 
@@ -44,11 +45,38 @@ function ThemeSwatch({ id }: { id: ThemeId }) {
 export function SettingsPanel() {
   const t = useT()
   const { theme, lang, defaultType, shortcuts, setTheme, setLang, setDefaultType, setShortcut, resetShortcuts } = useSettingsStore()
-  const sections = ['settings.appearance', 'settings.language', 'settings.general', 'settings.shortcuts', 'settings.about']
+  const project = useBoardStore(s => s.project)
+  const sections = ['settings.appearance', 'settings.language', 'settings.general', 'settings.versioning', 'settings.shortcuts', 'settings.about']
   const [active, setActive] = useState(0)
   const [recording, setRecording] = useState<ShortcutAction | null>(null)
+  const [versioning, setVersioning] = useState<ProjectVersioningSettings | null>(null)
+  const [versioningSaving, setVersioningSaving] = useState(false)
 
   const shortcutActions: ShortcutAction[] = ['capture', 'palette', 'newCard', 'save']
+
+  useEffect(() => {
+    let alive = true
+    if (!project) {
+      setVersioning(null)
+      return
+    }
+    window.electronAPI.getProjectVersioningSettings(project.path)
+      .then(settings => { if (alive) setVersioning(settings) })
+      .catch(() => { if (alive) setVersioning(null) })
+    return () => { alive = false }
+  }, [project])
+
+  const updateVersioning = async (next: ProjectVersioningSettings) => {
+    if (!project) return
+    setVersioning(next)
+    setVersioningSaving(true)
+    try {
+      const saved = await window.electronAPI.updateProjectVersioningSettings(project.path, next)
+      setVersioning(saved)
+    } finally {
+      setVersioningSaving(false)
+    }
+  }
 
   const handleShortcutKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, action: ShortcutAction) => {
     event.preventDefault()
@@ -148,8 +176,48 @@ export function SettingsPanel() {
           </section>
         )}
 
-        {/* Shortcuts */}
+        {/* Versioning */}
         {active === 3 && (
+          <section className="max-w-md">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-text-primary">{t('settings.versioning')}</h2>
+              <p className="mt-1 text-xs text-text-muted">{project ? project.path : t('settings.versioningNoProject')}</p>
+            </div>
+            {versioning && project ? (
+              <div className="space-y-0 rounded-md border border-border-subtle">
+                <VersioningRow
+                  label={t('settings.trackTasks')}
+                  checked={versioning.trackTasks}
+                  disabled={versioningSaving}
+                  onChange={checked => updateVersioning({ ...versioning, trackTasks: checked })}
+                />
+                <VersioningRow
+                  label={t('settings.trackPlans')}
+                  checked={versioning.trackPlans}
+                  disabled={versioningSaving}
+                  onChange={checked => updateVersioning({ ...versioning, trackPlans: checked })}
+                />
+                <VersioningRow
+                  label={t('settings.trackSkills')}
+                  checked={versioning.trackSkills}
+                  disabled={versioningSaving}
+                  onChange={checked => updateVersioning({ ...versioning, trackSkills: checked })}
+                />
+                <VersioningRow
+                  label={t('settings.trackAgentRules')}
+                  checked={versioning.trackAgentRules}
+                  disabled={versioningSaving}
+                  onChange={checked => updateVersioning({ ...versioning, trackAgentRules: checked })}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted">{t('settings.versioningNoProject')}</p>
+            )}
+          </section>
+        )}
+
+        {/* Shortcuts */}
+        {active === 4 && (
           <section className="max-w-md">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -187,7 +255,7 @@ export function SettingsPanel() {
         )}
 
         {/* About */}
-        {active === 4 && (
+        {active === 5 && (
           <section className="max-w-md">
             <h2 className="text-base font-semibold text-text-primary mb-3">{t('settings.about')}</h2>
             <div className="flex items-center gap-2 text-text-muted">
@@ -198,5 +266,30 @@ export function SettingsPanel() {
         )}
       </div>
     </div>
+  )
+}
+
+function VersioningRow({
+  label,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  disabled: boolean
+  onChange(checked: boolean): void
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 border-b border-border-subtle px-3 py-2.5 last:border-b-0">
+      <span className="text-sm text-text-secondary">{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={event => onChange(event.currentTarget.checked)}
+        className="h-4 w-4 accent-accent"
+      />
+    </label>
   )
 }

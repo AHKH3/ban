@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ActivitySparkIcon } from '@hugeicons/core-free-icons'
-import { FolderIcon, AddIcon, SettingsIcon, BoardIcon, CodeIcon, LayoutIcon, PreviewIcon, IdeaIcon } from '@/components/ui/icons'
+import { FolderIcon, AddIcon, SettingsIcon, BoardIcon, PreviewIcon } from '@/components/ui/icons'
 import { BrandMark } from './BrandMark'
 import { useBoardStore } from '@/lib/store/board'
 import { useUIStore } from '@/lib/store/ui'
@@ -84,28 +84,6 @@ export function Sidebar() {
             <span className="truncate ps-1.5">{t('nav.journey')}</span>
           </button>
           <button
-            onClick={() => setView('agents')}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-start text-sm transition-all active:scale-98 ${
-              activeView === 'agents'
-                ? 'bg-accent-soft text-text-primary font-medium'
-                : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
-            }`}
-          >
-            <CodeIcon size={14} className={activeView === 'agents' ? 'text-accent' : 'text-text-muted'} />
-            <span className="truncate ps-1.5">{t('nav.agents')}</span>
-          </button>
-          <button
-            onClick={() => setView('plans')}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-start text-sm transition-all active:scale-98 ${
-              activeView === 'plans'
-                ? 'bg-accent-soft text-text-primary font-medium'
-                : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
-            }`}
-          >
-            <LayoutIcon size={14} className={activeView === 'plans' ? 'text-accent' : 'text-text-muted'} />
-            <span className="truncate ps-1.5">{t('nav.plans')}</span>
-          </button>
-          <button
             onClick={() => setView('files')}
             className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-start text-sm transition-all active:scale-98 ${
               activeView === 'files'
@@ -115,17 +93,6 @@ export function Sidebar() {
           >
             <PreviewIcon size={14} className={activeView === 'files' ? 'text-accent' : 'text-text-muted'} />
             <span className="truncate ps-1.5">{t('nav.files')}</span>
-          </button>
-          <button
-            onClick={() => setView('skills')}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-start text-sm transition-all active:scale-98 ${
-              activeView === 'skills'
-                ? 'bg-accent-soft text-text-primary font-medium'
-                : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
-            }`}
-          >
-            <IdeaIcon size={14} className={activeView === 'skills' ? 'text-accent' : 'text-text-muted'} />
-            <span className="truncate ps-1.5">{t('nav.skills')}</span>
           </button>
         </div>
       )}
